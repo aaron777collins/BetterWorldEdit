@@ -60,6 +60,7 @@ var num _ze<@a> = 0;
 var num _tile_x<@a> = 0;
 var num _tile_z<@a> = 0;
 var num _area_limit<@a> = 0;
+var num _temp<@a> = 0;
 
 // Main function
 function betterworldedit:main {
@@ -82,6 +83,53 @@ function betterworldedit:init {
     // Ensure selector stat objective exists (brush usage)
     $!raw
     scoreboard objectives add bwe_use_selector minecraft.used:minecraft.brush
+    scoreboard objectives add bwe_pos1_x dummy
+    scoreboard objectives add bwe_pos1_y dummy
+    scoreboard objectives add bwe_pos1_z dummy
+    scoreboard objectives add bwe_pos2_x dummy
+    scoreboard objectives add bwe_pos2_y dummy
+    scoreboard objectives add bwe_pos2_z dummy
+    scoreboard objectives add bwe_pos1_set dummy
+    scoreboard objectives add bwe_pos2_set dummy
+    scoreboard objectives add bwe_min_x dummy
+    scoreboard objectives add bwe_min_y dummy
+    scoreboard objectives add bwe_min_z dummy
+    scoreboard objectives add bwe_max_x dummy
+    scoreboard objectives add bwe_max_y dummy
+    scoreboard objectives add bwe_max_z dummy
+    scoreboard objectives add bwe_dim_x dummy
+    scoreboard objectives add bwe_dim_y dummy
+    scoreboard objectives add bwe_dim_z dummy
+    scoreboard objectives add bwe_volume dummy
+    scoreboard objectives add bwe_max_fill dummy
+    scoreboard objectives add bwe_outline_enabled dummy
+    scoreboard objectives add bwe_outline_step dummy
+    scoreboard objectives add _px dummy
+    scoreboard objectives add _py dummy
+    scoreboard objectives add _pz dummy
+    scoreboard objectives add _x dummy
+    scoreboard objectives add _y dummy
+    scoreboard objectives add _z dummy
+    scoreboard objectives add _mx dummy
+    scoreboard objectives add _yb dummy
+    scoreboard objectives add _yt dummy
+    scoreboard objectives add _slice_h dummy
+    scoreboard objectives add _base dummy
+    scoreboard objectives add _slices dummy
+    scoreboard objectives add _y_start dummy
+    scoreboard objectives add _y_end dummy
+    scoreboard objectives add _xs dummy
+    scoreboard objectives add _xe dummy
+    scoreboard objectives add _zs dummy
+    scoreboard objectives add _ze dummy
+    scoreboard objectives add _tile_x dummy
+    scoreboard objectives add _tile_z dummy
+    scoreboard objectives add _area_limit dummy
+    scoreboard objectives add _temp dummy
+    scoreboard objectives add bwe_stat_selector dummy
+    scoreboard objectives add bwe_stat_selector_2 dummy
+    scoreboard objectives add bwe_stat_prev_1 dummy
+    scoreboard objectives add bwe_stat_prev_2 dummy
     raw!$
 }
 
@@ -119,6 +167,10 @@ function betterworldedit:pos2 {
 // --- Bounds, dimensions, and info ---
 
 function betterworldedit:_compute_bounds {
+    say "DEBUG: _compute_bounds called";
+    say "DEBUG: pos1_set=$bwe_pos1_set<@s>$, pos2_set=$bwe_pos2_set<@s>$";
+    say "DEBUG: raw pos1 ($bwe_pos1_x<@s>$, $bwe_pos1_y<@s>$, $bwe_pos1_z<@s>$)";
+    say "DEBUG: raw pos2 ($bwe_pos2_x<@s>$, $bwe_pos2_y<@s>$, $bwe_pos2_z<@s>$)";
     // If one pos not set, mirror the other so dims stay valid
     if $bwe_pos1_set<@s>$ == 0 {
         bwe_pos1_x<@s> = $bwe_pos2_x<@s>$;
@@ -130,6 +182,8 @@ function betterworldedit:_compute_bounds {
         bwe_pos2_y<@s> = $bwe_pos1_y<@s>$;
         bwe_pos2_z<@s> = $bwe_pos1_z<@s>$;
     }
+    say "DEBUG: mirrored pos1 ($bwe_pos1_x<@s>$, $bwe_pos1_y<@s>$, $bwe_pos1_z<@s>$)";
+    say "DEBUG: mirrored pos2 ($bwe_pos2_x<@s>$, $bwe_pos2_y<@s>$, $bwe_pos2_z<@s>$)";
 
     // X bounds
     if $bwe_pos1_x<@s>$ <= $bwe_pos2_x<@s>$ {
@@ -155,14 +209,32 @@ function betterworldedit:_compute_bounds {
         bwe_min_z<@s> = $bwe_pos2_z<@s>$;
         bwe_max_z<@s> = $bwe_pos1_z<@s>$;
     }
+    say "DEBUG: bounds min ($bwe_min_x<@s>$, $bwe_min_y<@s>$, $bwe_min_z<@s>$) max ($bwe_max_x<@s>$, $bwe_max_y<@s>$, $bwe_max_z<@s>$)";
 
     // Dimensions (inclusive)
-    bwe_dim_x<@s> = $bwe_max_x<@s>$ - $bwe_min_x<@s>$ + 1;
-    bwe_dim_y<@s> = $bwe_max_y<@s>$ - $bwe_min_y<@s>$ + 1;
-    bwe_dim_z<@s> = $bwe_max_z<@s>$ - $bwe_min_z<@s>$ + 1;
+    $!raw
+    scoreboard players operation @s bwe_dim_x = @s bwe_max_x
+    scoreboard players operation @s bwe_dim_x -= @s bwe_min_x
+    scoreboard players add @s bwe_dim_x 1
+    scoreboard players operation @s bwe_dim_y = @s bwe_max_y
+    scoreboard players operation @s bwe_dim_y -= @s bwe_min_y
+    scoreboard players add @s bwe_dim_y 1
+    scoreboard players operation @s bwe_dim_z = @s bwe_max_z
+    scoreboard players operation @s bwe_dim_z -= @s bwe_min_z
+    scoreboard players add @s bwe_dim_z 1
+    raw!$
+    say "DEBUG: dims ($bwe_dim_x<@s>$, $bwe_dim_y<@s>$, $bwe_dim_z<@s>$)";
 
     // Volume
-    bwe_volume<@s> = $bwe_dim_x<@s>$ * $bwe_dim_y<@s>$ * $bwe_dim_z<@s>$;
+    $!raw
+    scoreboard players operation @s _temp = @s bwe_dim_x
+    scoreboard players operation @s _temp *= @s bwe_dim_y
+    scoreboard players operation @s bwe_volume = @s _temp
+    scoreboard players operation @s bwe_volume *= @s bwe_dim_z
+    tellraw @s {"text":"DEBUG: temp after dim_x * dim_y = ","extra":[{"score":{"name":"@s","objective":"_temp"}}]}
+    tellraw @s {"text":"DEBUG: volume after * dim_z = ","extra":[{"score":{"name":"@s","objective":"bwe_volume"}}]}
+    raw!$
+    say "DEBUG: volume = $bwe_volume<@s>$";
 }
 
 function betterworldedit:info {
@@ -348,67 +420,76 @@ function betterworldedit:_prepare_fill_ctx {
 
 function betterworldedit:set_stone {
     exec betterworldedit:_compute_bounds;
-    say "Filling selection with stone... ($bwe_dim_x<@s>$x$bwe_dim_y<@s>$x$bwe_dim_z<@s>$ = $bwe_volume<@s>$)";
-
-    // If within limit, single fill
-    if $bwe_volume<@s>$ <= $bwe_max_fill<@s>$ {
-        // Prepare single-slice context using y_start = min_y, y_end = max_y
-        $!raw
-        scoreboard players operation @s _y_start = @s bwe_min_y
-        scoreboard players operation @s _y_end = @s bwe_max_y
-        scoreboard players operation @s _xs = @s bwe_min_x
-        scoreboard players operation @s _xe = @s bwe_max_x
-        scoreboard players operation @s _zs = @s bwe_min_z
-        scoreboard players operation @s _ze = @s bwe_max_z
-        raw!$
-        exec betterworldedit:_prepare_fill_ctx;
-        exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
-        say "Done (single fill).";
+    $!raw
+    execute unless data storage betterworldedit:ctx req.block run data modify storage betterworldedit:ctx req.block set value "minecraft:stone"
+    raw!$
+    if $bwe_volume<@s>$ == 0 {
+        say "No selection set! Use pos1/pos2 first.";
     } else {
-        // Compute per-slice height: clamp to >=1 and <= dim_y
-        _base<@s> = $bwe_dim_x<@s>$ * $bwe_dim_z<@s>$;
-        _slice_h<@s> = $bwe_max_fill<@s>$ / $_base<@s>$;
-        if $_slice_h<@s>$ < 1 { _slice_h<@s> = 1; }
-        if $_slice_h<@s>$ > $bwe_dim_y<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$; }
+        $!raw
+        tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":"... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":")"}]
+        raw!$
 
-        _y_start<@s> = $bwe_min_y<@s>$ + 0;
-        _y_end<@s> = 0;
-        _slices<@s> = 0;
+        // If within limit, single fill
+        if $bwe_volume<@s>$ <= $bwe_max_fill<@s>$ {
+            // Prepare single-slice context using y_start = min_y, y_end = max_y
+            $!raw
+            scoreboard players operation @s _y_start = @s bwe_min_y
+            scoreboard players operation @s _y_end = @s bwe_max_y
+            scoreboard players operation @s _xs = @s bwe_min_x
+            scoreboard players operation @s _xe = @s bwe_max_x
+            scoreboard players operation @s _zs = @s bwe_min_z
+            scoreboard players operation @s _ze = @s bwe_max_z
+            raw!$
+            exec betterworldedit:_prepare_fill_ctx;
+            exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
+            say "Done (single fill).";
+        } else {
+            // Compute per-slice height: clamp to >=1 and <= dim_y
+            _base<@s> = $bwe_dim_x<@s>$ * $bwe_dim_z<@s>$;
+            _slice_h<@s> = $bwe_max_fill<@s>$ / $_base<@s>$;
+            if $_slice_h<@s>$ < 1 { _slice_h<@s> = 1; }
+            if $_slice_h<@s>$ > $bwe_dim_y<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$; }
 
-        while $_y_start<@s>$ <= $bwe_max_y<@s>$ {
-            _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
-            if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
+            _y_start<@s> = $bwe_min_y<@s>$ + 0;
+            _y_end<@s> = 0;
+            _slices<@s> = 0;
 
-            // Determine tile sizes along X/Z to respect area_limit
-            _area_limit<@s> = $bwe_max_fill<@s>$ / $_slice_h<@s>$;
-            if $_area_limit<@s>$ < 1 { _area_limit<@s> = 1; }
+            while $_y_start<@s>$ <= $bwe_max_y<@s>$ {
+                _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
+                if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
 
-            _tile_x<@s> = $_area_limit<@s>$ / $bwe_dim_z<@s>$;
-            if $_tile_x<@s>$ < 1 { _tile_x<@s> = 1; }
-            if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
-            _tile_z<@s> = $_area_limit<@s>$ / $_tile_x<@s>$;
-            if $_tile_z<@s>$ < 1 { _tile_z<@s> = 1; }
-            if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
+                // Determine tile sizes along X/Z to respect area_limit
+                _area_limit<@s> = $bwe_max_fill<@s>$ / $_slice_h<@s>$;
+                if $_area_limit<@s>$ < 1 { _area_limit<@s> = 1; }
 
-            _xs<@s> = $bwe_min_x<@s>$ + 0;
-            while $_xs<@s>$ <= $bwe_max_x<@s>$ {
-                _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
-                if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
-                _zs<@s> = $bwe_min_z<@s>$ + 0;
-                while $_zs<@s>$ <= $bwe_max_z<@s>$ {
-                    _ze<@s> = $_zs<@s>$ + $_tile_z<@s>$ - 1;
-                    if $_ze<@s>$ > $bwe_max_z<@s>$ { _ze<@s> = $bwe_max_z<@s>$; }
-                    exec betterworldedit:_prepare_fill_ctx;
-                    exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
-                    _slices<@s> = $_slices<@s>$ + 1;
-                    say "Filled #$_slices<@s>$: x $_xs<@s>$..$_xe<@s>$, y $_y_start<@s>$..$_y_end<@s>$, z $_zs<@s>$..$_ze<@s>$";
-                    _zs<@s> = $_ze<@s>$ + 1;
+                _tile_x<@s> = $_area_limit<@s>$ / $bwe_dim_z<@s>$;
+                if $_tile_x<@s>$ < 1 { _tile_x<@s> = 1; }
+                if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
+                _tile_z<@s> = $_area_limit<@s>$ / $_tile_x<@s>$;
+                if $_tile_z<@s>$ < 1 { _tile_z<@s> = 1; }
+                if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
+
+                _xs<@s> = $bwe_min_x<@s>$ + 0;
+                while $_xs<@s>$ <= $bwe_max_x<@s>$ {
+                    _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
+                    if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
+                    _zs<@s> = $bwe_min_z<@s>$ + 0;
+                    while $_zs<@s>$ <= $bwe_max_z<@s>$ {
+                        _ze<@s> = $_zs<@s>$ + $_tile_z<@s>$ - 1;
+                        if $_ze<@s>$ > $bwe_max_z<@s>$ { _ze<@s> = $bwe_max_z<@s>$; }
+                        exec betterworldedit:_prepare_fill_ctx;
+                        exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
+                        _slices<@s> = $_slices<@s>$ + 1;
+                        say "Filled #$_slices<@s>$: x $_xs<@s>$..$_xe<@s>$, y $_y_start<@s>$..$_y_end<@s>$, z $_zs<@s>$..$_ze<@s>$";
+                        _zs<@s> = $_ze<@s>$ + 1;
+                    }
+                    _xs<@s> = $_xe<@s>$ + 1;
                 }
-                _xs<@s> = $_xe<@s>$ + 1;
+                _y_start<@s> = $_y_end<@s>$ + 1;
             }
-            _y_start<@s> = $_y_end<@s>$ + 1;
+            say "Done ($_slices<@s>$ sub-fills).";
         }
-        say "Done ($_slices<@s>$ sub-fills).";
     }
 }
 

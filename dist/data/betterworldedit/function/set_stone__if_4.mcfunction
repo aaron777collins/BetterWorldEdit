@@ -1,2 +1,2 @@
 # Function: betterworldedit:set_stone__if_4
-scoreboard players operation @s _y_end = @s bwe_max_y
+scoreboard players operation @s _slice_h = @s bwe_dim_y

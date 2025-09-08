@@ -47,5 +47,6 @@ scoreboard objectives add _ze dummy "_ze"
 scoreboard objectives add _tile_x dummy "_tile_x"
 scoreboard objectives add _tile_z dummy "_tile_z"
 scoreboard objectives add _area_limit dummy "_area_limit"
+scoreboard objectives add _temp dummy "_temp"
 
 function betterworldedit:init

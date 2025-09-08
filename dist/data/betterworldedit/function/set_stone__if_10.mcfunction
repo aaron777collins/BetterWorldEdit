@@ -1,2 +1,2 @@
 # Function: betterworldedit:set_stone__if_10
-scoreboard players operation @s _xe = @s bwe_max_x
+scoreboard players operation @s _tile_z = @s bwe_dim_z

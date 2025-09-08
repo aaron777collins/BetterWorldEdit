@@ -1,2 +1,2 @@
 # Function: betterworldedit:set_stone__if_3
-scoreboard players operation @s _slice_h = @s bwe_dim_y
+scoreboard players set @s _slice_h 1
