@@ -1,0 +1,7 @@
+# Function: betterworldedit:info
+
+function betterworldedit:_compute_bounds
+tellraw @a {"text":"Pos1: (","extra":[{"score":{"name":"@s","objective":"bwe_pos1_x"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_pos1_y"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_pos1_z"}},")"]}
+tellraw @a {"text":"Pos2: (","extra":[{"score":{"name":"@s","objective":"bwe_pos2_x"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_pos2_y"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_pos2_z"}},")"]}
+tellraw @a {"text":"Bounds min: (","extra":[{"score":{"name":"@s","objective":"bwe_min_x"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_min_y"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_min_z"}},{"text":") max: ("},{"score":{"name":"@s","objective":"bwe_max_x"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_max_y"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_max_z"}},")"]}
+tellraw @a {"text":"Dims: ","extra":[{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":" x "},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":" x "},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}}]}
