@@ -60,13 +60,17 @@ var num bwe_stat_prev_2<@a> = 0;        // last seen stat when using Pos2 tool
 // =============================
 
 function betterworldedit:main {
-    say "BetterWorldEdit - Commands:";
-    say " - /function betterworldedit:pos1 - set position 1 (your current block)";
-    say " - /function betterworldedit:pos2 - set position 2 (your current block)";
-    say " - /function betterworldedit:info - show selection info";
-    say " - /function betterworldedit:set_stone - fill selection with stone (chunked)";
-    say " - /function betterworldedit:give_selector - get selector tools (pos1 & pos2)";
-    say " - exec betterworldedit:fill_selection '{block:\"minecraft:oak_planks\"}' - fill with any block";
+    $!raw
+    tellraw @s [{"text":"BetterWorldEdit","bold":true,"color":"aqua"},{"text":" - Commands","color":"gray"}]
+    tellraw @s [{"text":" • ","color":"dark_gray"},{"text":"/function betterworldedit:pos1","color":"gold"},{"text":" - set position 1 (your current block)","color":"yellow"}]
+    tellraw @s [{"text":" • ","color":"dark_gray"},{"text":"/function betterworldedit:pos2","color":"gold"},{"text":" - set position 2 (your current block)","color":"yellow"}]
+    tellraw @s [{"text":" • ","color":"dark_gray"},{"text":"/function betterworldedit:info","color":"gold"},{"text":" - show selection info","color":"yellow"}]
+    tellraw @s [{"text":" • ","color":"dark_gray"},{"text":"/function betterworldedit:fill_block","color":"gold"},{"text":" - fill selection with a block (chunked)","color":"yellow"}]
+    tellraw @s [{"text":" • ","color":"dark_gray"},{"text":"/function betterworldedit:give_selector","color":"gold"},{"text":" - get selector tools (pos1 & pos2)","color":"yellow"}]
+    tellraw @s [{"text":" • ","color":"dark_gray"},{"text":"/function betterworldedit:fill_selection ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\"}","color":"aqua"},{"text":" - fill with any block","color":"yellow"}]
+    tellraw @s [{"text":" • ","color":"dark_gray"},{"text":"/function betterworldedit:set_max_fill ","color":"gold"},{"text":"{value:30000}","color":"aqua"},{"text":" - set max blocks per sub-fill","color":"yellow"}]
+    tellraw @s [{"text":"Global config:","color":"gray"},{"text":" armor stand tag ","color":"dark_gray"},{"text":"bwe_global_config","color":"aqua"},{"text":" controls max per op.","color":"gray"}]
+    raw!$
 }
 
 function betterworldedit:init {
@@ -125,6 +129,20 @@ function betterworldedit:init {
 // Run on load
 on_load betterworldedit:init;
 
+function betterworldedit:_ensure_global_config {
+    $!raw
+    # Ensure a single invulnerable, no-gravity armor stand exists with config scores
+    execute unless entity @e[type=armor_stand,tag=bwe_global_config,limit=1] run summon armor_stand ~ ~ ~ {NoGravity:1b,Invulnerable:1b,Invisible:1b,Tags:["bwe_global_config"]}
+
+    # Ensure the objective exists for global max fill
+    scoreboard objectives add bwe_max_fill dummy
+
+    # Initialize default if missing
+    scoreboard players add @e[type=armor_stand,tag=bwe_global_config] bwe_max_fill 0
+    execute unless score @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_max_fill matches 1.. run scoreboard players set @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_max_fill 30000
+    raw!$
+}
+
 // =============================
 // Position capture helpers
 // =============================
@@ -140,7 +158,7 @@ function betterworldedit:pos1 {
     raw!$
     bwe_pos1_set<@s> = 1;
     $!raw
-    tellraw @s [{"text":"Set pos1 to ("},{"score":{"name":"@s","objective":"bwe_pos1_x"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_pos1_y"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_pos1_z"}},{"text":")"}]
+    tellraw @s [{"text":"Pos1 set ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos1_x"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos1_y"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos1_z"},"color":"aqua"},{"text":")","color":"dark_gray"}]
     raw!$
 }
 
@@ -155,7 +173,7 @@ function betterworldedit:pos2 {
     raw!$
     bwe_pos2_set<@s> = 1;
     $!raw
-    tellraw @s [{"text":"Set pos2 to ("},{"score":{"name":"@s","objective":"bwe_pos2_x"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_pos2_y"}},{"text":", "},{"score":{"name":"@s","objective":"bwe_pos2_z"}},{"text":")"}]
+    tellraw @s [{"text":"Pos2 set ","color":"gold"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos2_x"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos2_y"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos2_z"},"color":"aqua"},{"text":")","color":"dark_gray"}]
     raw!$
 }
 
@@ -227,10 +245,13 @@ function betterworldedit:_compute_bounds {
 
 function betterworldedit:info {
     exec betterworldedit:_compute_bounds;
-    say "Pos1: ($bwe_pos1_x<@s>$, $bwe_pos1_y<@s>$, $bwe_pos1_z<@s>$)";
-    say "Pos2: ($bwe_pos2_x<@s>$, $bwe_pos2_y<@s>$, $bwe_pos2_z<@s>$)";
-    say "Bounds min: ($bwe_min_x<@s>$, $bwe_min_y<@s>$, $bwe_min_z<@s>$) max: ($bwe_max_x<@s>$, $bwe_max_y<@s>$, $bwe_max_z<@s>$)";
-    say "Dims: $bwe_dim_x<@s>$ x $bwe_dim_y<@s>$ x $bwe_dim_z<@s>$ = $bwe_volume<@s>$";
+    $!raw
+    tellraw @s [{"text":"Selection Info","bold":true,"color":"aqua"}]
+    tellraw @s [{"text":"Pos1:","color":"gray"},{"text":" (","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos1_x"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos1_y"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos1_z"},"color":"aqua"},{"text":")","color":"dark_gray"}]
+    tellraw @s [{"text":"Pos2:","color":"gray"},{"text":" (","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos2_x"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos2_y"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_pos2_z"},"color":"aqua"},{"text":")","color":"dark_gray"}]
+    tellraw @s [{"text":"Bounds:","color":"gray"},{"text":" min ","color":"dark_gray"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_min_x"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_min_y"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_min_z"},"color":"aqua"},{"text":") ","color":"dark_gray"},{"text":"max ","color":"dark_gray"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_max_x"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_max_y"},"color":"aqua"},{"text":", ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_max_z"},"color":"aqua"},{"text":")","color":"dark_gray"}]
+    tellraw @s [{"text":"Dims:","color":"gray"},{"score":{"name":"@s","objective":"bwe_dim_x"},"color":"aqua"},{"text":" x ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_dim_y"},"color":"aqua"},{"text":" x ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_dim_z"},"color":"aqua"},{"text":" = ","color":"dark_gray"},{"score":{"name":"@s","objective":"bwe_volume"},"color":"yellow"}]
+    raw!$
 }
 
 // =============================
@@ -261,9 +282,9 @@ function betterworldedit:_ensure_scores_for_player {
     scoreboard players add @s bwe_dim_z 0
     scoreboard players add @s bwe_volume 0
 
-    # Config (set default once)
+    # Config (mirror from global at fill start)
     scoreboard players add @s bwe_max_fill 0
-    execute unless score @s bwe_max_fill matches 1.. run scoreboard players set @s bwe_max_fill 30000
+    execute store result score @s bwe_max_fill run scoreboard players get @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_max_fill
 
     # Scratch
     scoreboard players add @s _slice_h 0
@@ -293,7 +314,6 @@ function betterworldedit:_ensure_scores_for_player {
 }
 
 function betterworldedit:main_tick {
-    exec betterworldedit:_ensure_scores_for_player<@a>;
     exec betterworldedit:update_selector<@a>;
     exec betterworldedit:process_fill_tick<@a>;
 }
@@ -325,16 +345,21 @@ function betterworldedit:_prepare_fill_ctx {
     raw!$
 }
 
-function betterworldedit:set_stone {
+function betterworldedit:fill_block {
+    // Ensure global config and player score entries only when starting a fill
+    exec betterworldedit:_ensure_global_config;
+    exec betterworldedit:_ensure_scores_for_player;
     exec betterworldedit:_compute_bounds;
     $!raw
     execute unless data storage betterworldedit:ctx req.block run data modify storage betterworldedit:ctx req.block set value "minecraft:stone"
     raw!$
     if $bwe_volume<@s>$ == 0 {
-        say "No selection set! Use pos1/pos2 first.";
+        $!raw
+        tellraw @s [{"text":"No selection set!","color":"red"},{"text":" Use ","color":"gray"},{"text":"pos1","color":"gold"},{"text":"/","color":"dark_gray"},{"text":"pos2","color":"gold"},{"text":" first.","color":"gray"}]
+        raw!$
     } else {
         $!raw
-        tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":"... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":")"}]
+        tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":"... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":") max per op="},{"score":{"name":"@s","objective":"bwe_max_fill"}},{"text":")"}]
         raw!$
 
         // Single fill if within limit
@@ -349,7 +374,9 @@ function betterworldedit:set_stone {
             raw!$
             exec betterworldedit:_prepare_fill_ctx;
             exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
-            say "Done (single fill).";
+            $!raw
+            tellraw @s [{"text":"Done","color":"green"},{"text":" (single fill)","color":"gray"}]
+            raw!$
         } else {
             // Chunked: precompute tile sizes and schedule per-tick processing
             _base<@s> = $bwe_dim_x<@s>$ * $bwe_dim_z<@s>$;
@@ -375,7 +402,9 @@ function betterworldedit:set_stone {
             _iz<@s> = 0;
             _slices<@s> = 0;
             _fill_active<@s> = 1;
-            say "Started chunked fill; running across ticks...";
+            $!raw
+            tellraw @s [{"text":"Started chunked fill","color":"green"},{"text":"; ","color":"dark_gray"},{"text":"running across ticks...","color":"gray"}]
+            raw!$
         }
     }
 }
@@ -387,7 +416,9 @@ function betterworldedit:process_fill_tick {
         _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
         if $_y_start<@s>$ > $bwe_max_y<@s>$ {
             _fill_active<@s> = 0;
-            say "Done ($_slices<@s>$ sub-fills).";
+            $!raw
+            tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
+            raw!$
         } else {
             // Compute current row/col starts
             _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
@@ -408,7 +439,9 @@ function betterworldedit:process_fill_tick {
                 _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
                 if $_y_start<@s>$ > $bwe_max_y<@s>$ {
                     _fill_active<@s> = 0;
-                    say "Done ($_slices<@s>$ sub-fills).";
+                    $!raw
+                    tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
+                    raw!$
                 }
             }
 
@@ -439,12 +472,22 @@ function betterworldedit:process_fill_tick {
 //   exec betterworldedit:fill_selection '{block:"minecraft:oak_planks"}';
 //   exec betterworldedit:fill_selection with storage betterworldedit:req mypath.to.compound;
 function betterworldedit:fill_selection {
+    $!rawdata remove storage betterworldedit:ctx req
+data modify storage betterworldedit:ctx req set value {}
+data modify storage betterworldedit:ctx req.block set value "$(block)"raw!$
+    exec betterworldedit:fill_block;
+}
+
+// Set the global max sub-fill size easily via storage argument: {value:NUMBER}
+// Usage:
+//   exec betterworldedit:set_max_fill '{value:50000}';
+//   exec betterworldedit:set_max_fill with storage betterworldedit:req mypath.to.compound;
+function betterworldedit:set_max_fill {
+    exec betterworldedit:_ensure_global_config;
     $!raw
-    data remove storage betterworldedit:ctx req
-    data modify storage betterworldedit:ctx req set value {}
-    data modify storage betterworldedit:ctx req.block set value "$(block)"
+    scoreboard players set @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_max_fill $(value)
+    tellraw @s [{"text":"Global max per sub-fill set to ","color":"gray"},{"score":{"name":"@e[type=armor_stand,tag=bwe_global_config,limit=1]","objective":"bwe_max_fill"},"color":"yellow"}]
     raw!$
-    exec betterworldedit:set_stone;
 }
 
 // =============================
@@ -456,7 +499,9 @@ function betterworldedit:give_selector {
     give @s minecraft:brush[item_name={"bold":true,"color":"dark_blue","italic":true,"text":"BWE Selector (Pos1)"},lore=[{"text":"Right-click: set pos1","color":"gray","italic":false}],custom_data={bwe_selector_1:1b}] 1
     give @s minecraft:brush[item_name={"bold":true,"color":"gold","italic":true,"text":"BWE Selector (Pos2)"},lore=[{"text":"Right-click: set pos2","color":"gray","italic":false}],custom_data={bwe_selector_2:1b}] 1
     raw!$
-    say "Gave you both BWE Selector tools (pos1 and pos2).";
+    $!raw
+    tellraw @s [{"text":"Gave you ","color":"gray"},{"text":"BWE Selector","color":"aqua","bold":true},{"text":" tools (pos1 & pos2)","color":"gray"}]
+    raw!$
 }
 
 function betterworldedit:update_selector {

@@ -9,21 +9,20 @@ execute unless score @s bwe_pos1_y <= @s bwe_pos2_y run function betterworldedit
 execute if score @s bwe_pos1_z <= @s bwe_pos2_z run function betterworldedit:_compute_bounds__if_5
 execute unless score @s bwe_pos1_z <= @s bwe_pos2_z run function betterworldedit:_compute_bounds__else_3
 
-    scoreboard players operation @s bwe_dim_x = @s bwe_max_x
-    scoreboard players operation @s bwe_dim_x -= @s bwe_min_x
-    scoreboard players add @s bwe_dim_x 1
+scoreboard players operation @s bwe_dim_x = @s bwe_max_x
+scoreboard players operation @s bwe_dim_x -= @s bwe_min_x
+scoreboard players add @s bwe_dim_x 1
 
-    scoreboard players operation @s bwe_dim_y = @s bwe_max_y
-    scoreboard players operation @s bwe_dim_y -= @s bwe_min_y
-    scoreboard players add @s bwe_dim_y 1
+scoreboard players operation @s bwe_dim_y = @s bwe_max_y
+scoreboard players operation @s bwe_dim_y -= @s bwe_min_y
+scoreboard players add @s bwe_dim_y 1
 
-    scoreboard players operation @s bwe_dim_z = @s bwe_max_z
-    scoreboard players operation @s bwe_dim_z -= @s bwe_min_z
-    scoreboard players add @s bwe_dim_z 1
-    
+scoreboard players operation @s bwe_dim_z = @s bwe_max_z
+scoreboard players operation @s bwe_dim_z -= @s bwe_min_z
+scoreboard players add @s bwe_dim_z 1
 
-    scoreboard players operation @s _temp = @s bwe_dim_x
-    scoreboard players operation @s _temp *= @s bwe_dim_y
-    scoreboard players operation @s bwe_volume = @s _temp
-    scoreboard players operation @s bwe_volume *= @s bwe_dim_z
-    
+
+scoreboard players operation @s _temp = @s bwe_dim_x
+scoreboard players operation @s _temp *= @s bwe_dim_y
+scoreboard players operation @s bwe_volume = @s _temp
+scoreboard players operation @s bwe_volume *= @s bwe_dim_z
