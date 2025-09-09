@@ -1,2 +1,2 @@
 # Function: betterworldedit:fill_block__if_5
-scoreboard players set @s _area_limit 1
+scoreboard players operation @s _slice_h = @s bwe_dim_y

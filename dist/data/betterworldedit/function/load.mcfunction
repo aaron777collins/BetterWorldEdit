@@ -70,6 +70,12 @@ scoreboard objectives add temp_26 dummy "temp_26"
 scoreboard objectives add temp_27 dummy "temp_27"
 scoreboard objectives add temp_28 dummy "temp_28"
 scoreboard objectives add temp_29 dummy "temp_29"
+scoreboard objectives add temp_30 dummy "temp_30"
+scoreboard objectives add temp_31 dummy "temp_31"
+scoreboard objectives add temp_32 dummy "temp_32"
+scoreboard objectives add temp_33 dummy "temp_33"
+scoreboard objectives add temp_34 dummy "temp_34"
+scoreboard objectives add temp_35 dummy "temp_35"
 scoreboard players set @a bwe_pos1_x 0
 scoreboard players set @a bwe_pos1_y 0
 scoreboard players set @a bwe_pos1_z 0

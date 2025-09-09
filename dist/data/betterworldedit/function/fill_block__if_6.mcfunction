@@ -1,2 +1,2 @@
 # Function: betterworldedit:fill_block__if_6
-scoreboard players set @s _tile_x 1
+scoreboard players set @s _area_limit 1

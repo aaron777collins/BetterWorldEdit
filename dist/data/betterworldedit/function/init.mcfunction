@@ -43,6 +43,7 @@ scoreboard objectives add _ix dummy
 scoreboard objectives add _iy dummy
 scoreboard objectives add _iz dummy
 scoreboard objectives add _fill_active dummy
+scoreboard objectives add _fill_desc dummy
 
 scoreboard objectives add bwe_stat_selector dummy
 scoreboard objectives add bwe_stat_selector_2 dummy

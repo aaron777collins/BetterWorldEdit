@@ -1,8 +1,18 @@
 # Function: betterworldedit:process_fill_tick__if_1
-scoreboard players operation @s temp_7 = @s _iy
-scoreboard players operation @s temp_7 *= @s _slice_h
-scoreboard players operation @s temp_6 = @s bwe_min_y
-scoreboard players operation @s temp_6 += @s temp_7
-scoreboard players operation @s _y_start = @s temp_6
-execute if score @s _y_start > @s bwe_max_y run function betterworldedit:process_fill_tick__if_2
-execute unless score @s _y_start > @s bwe_max_y run function betterworldedit:process_fill_tick__else_1
+execute if score @s _fill_desc matches 0 run function betterworldedit:process_fill_tick__if_2
+execute unless score @s _fill_desc matches 0 run function betterworldedit:process_fill_tick__else_1
+execute if score @s _fill_desc matches 0 run function betterworldedit:process_fill_tick__if_3
+execute unless score @s _fill_desc matches 0 run function betterworldedit:process_fill_tick__else_2
+scoreboard players operation @s temp_11 = @s _ix
+scoreboard players operation @s temp_11 *= @s _tile_x
+scoreboard players operation @s temp_10 = @s bwe_min_x
+scoreboard players operation @s temp_10 += @s temp_11
+scoreboard players operation @s _xs = @s temp_10
+scoreboard players operation @s temp_13 = @s _iz
+scoreboard players operation @s temp_13 *= @s _tile_z
+scoreboard players operation @s temp_12 = @s bwe_min_z
+scoreboard players operation @s temp_12 += @s temp_13
+scoreboard players operation @s _zs = @s temp_12
+execute if score @s _zs > @s bwe_max_z run function betterworldedit:process_fill_tick__if_6
+execute if score @s _xs > @s bwe_max_x run function betterworldedit:process_fill_tick__if_7
+execute if score @s _fill_active matches 1 run function betterworldedit:process_fill_tick__if_12

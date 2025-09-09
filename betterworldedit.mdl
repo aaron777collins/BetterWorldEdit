@@ -118,6 +118,7 @@ function betterworldedit:init {
     scoreboard objectives add _iy dummy
     scoreboard objectives add _iz dummy
     scoreboard objectives add _fill_active dummy
+    scoreboard objectives add _fill_desc dummy
 
     scoreboard objectives add bwe_stat_selector dummy
     scoreboard objectives add bwe_stat_selector_2 dummy
@@ -304,6 +305,7 @@ function betterworldedit:_ensure_scores_for_player {
     scoreboard players add @s _iy 0
     scoreboard players add @s _iz 0
     scoreboard players add @s _fill_active 0
+    scoreboard players add @s _fill_desc 0
 
     # Selector stats
     scoreboard players add @s bwe_stat_selector 0
@@ -362,11 +364,22 @@ function betterworldedit:fill_block {
         tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":"... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":") max per op="},{"score":{"name":"@s","objective":"bwe_max_fill"}},{"text":")"}]
         raw!$
 
+        // Determine fill direction: liquids/air -> top-down (desc), else bottom-up (asc)
+        $!raw
+        scoreboard players set @s _fill_desc 0
+        execute if data storage betterworldedit:ctx req{block:"minecraft:air"} run scoreboard players set @s _fill_desc 1
+        raw!$
+
         // Single fill if within limit
         if $bwe_volume<@s>$ <= $bwe_max_fill<@s>$ {
+            if $_fill_desc<@s>$ == 0 {
+                _y_start<@s> = $bwe_min_y<@s>$;
+                _y_end<@s> = $bwe_max_y<@s>$;
+            } else {
+                _y_start<@s> = $bwe_max_y<@s>$;
+                _y_end<@s> = $bwe_min_y<@s>$;
+            }
             $!raw
-            scoreboard players operation @s _y_start = @s bwe_min_y
-            scoreboard players operation @s _y_end = @s bwe_max_y
             scoreboard players operation @s _xs = @s bwe_min_x
             scoreboard players operation @s _xe = @s bwe_max_x
             scoreboard players operation @s _zs = @s bwe_min_z
@@ -413,13 +426,28 @@ function betterworldedit:process_fill_tick {
     // If a chunked fill is active, process one sub-fill per tick per player
     if $_fill_active<@s>$ == 1 {
         // Compute layer start; finish if beyond bounds
-        _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
-        if $_y_start<@s>$ > $bwe_max_y<@s>$ {
-            _fill_active<@s> = 0;
-            $!raw
-            tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
-            raw!$
+        if $_fill_desc<@s>$ == 0 {
+            _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
         } else {
+            _y_start<@s> = $bwe_max_y<@s>$ - ($_iy<@s>$ * $_slice_h<@s>$);
+        }
+
+        if $_fill_desc<@s>$ == 0 {
+            if $_y_start<@s>$ > $bwe_max_y<@s>$ {
+                _fill_active<@s> = 0;
+                $!raw
+                tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
+                raw!$
+            }
+        } else {
+            if $_y_start<@s>$ < $bwe_min_y<@s>$ {
+                _fill_active<@s> = 0;
+                $!raw
+                tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
+                raw!$
+            }
+        }
+        else {
             // Compute current row/col starts
             _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
             _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
@@ -436,19 +464,45 @@ function betterworldedit:process_fill_tick {
                 _ix<@s> = 0;
                 _iy<@s> = $_iy<@s>$ + 1;
                 _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
-                _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
-                if $_y_start<@s>$ > $bwe_max_y<@s>$ {
-                    _fill_active<@s> = 0;
-                    $!raw
-                    tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
-                    raw!$
+                // Recompute _y_start based on direction
+                if $_fill_desc<@s>$ == 0 {
+                    _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
+                } else {
+                    _y_start<@s> = $bwe_max_y<@s>$ - ($_iy<@s>$ * $_slice_h<@s>$);
+                }
+                if $_fill_desc<@s>$ == 0 {
+                    if $_y_start<@s>$ > $bwe_max_y<@s>$ {
+                        _fill_active<@s> = 0;
+                        $!raw
+                        tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
+                        raw!$
+                    }
+                } else {
+                    if $_y_start<@s>$ < $bwe_min_y<@s>$ {
+                        _fill_active<@s> = 0;
+                        $!raw
+                        tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
+                        raw!$
+                    }
                 }
             }
 
             if $_fill_active<@s>$ == 1 {
                 // Compute ends with clamps
-                _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
-                if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
+                if $_fill_desc<@s>$ == 0 {
+                    _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
+                    if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
+                } else {
+                    // For desc: _y_start is higher; compute end below and then normalize start/end for the fill call
+                    _y_end<@s> = $_y_start<@s>$ - $_slice_h<@s>$ + 1;
+                    if $_y_end<@s>$ < $bwe_min_y<@s>$ { _y_end<@s> = $bwe_min_y<@s>$; }
+                    // Ensure _y_start is min and _y_end is max when placing into ctx (MDL swap)
+                    if $_y_start<@s>$ > $_y_end<@s>$ {
+                        _temp<@s> = $_y_start<@s>$;
+                        _y_start<@s> = $_y_end<@s>$;
+                        _y_end<@s> = $_temp<@s>$;
+                    }
+                }
 
                 _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
                 if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
@@ -471,9 +525,11 @@ function betterworldedit:process_fill_tick {
 // Usage examples:
 //   /function betterworldedit:fill_selection {block:"minecraft:oak_planks"}
 function betterworldedit:fill_selection {
-    $!rawdata remove storage betterworldedit:ctx req
-data modify storage betterworldedit:ctx req set value {}
-data modify storage betterworldedit:ctx req.block set value "$(block)"raw!$
+    $!raw
+    data remove storage betterworldedit:ctx req
+    data modify storage betterworldedit:ctx req set value {}
+    data modify storage betterworldedit:ctx req.block set value "$(block)"
+    raw!$
     exec betterworldedit:fill_block;
 }
 

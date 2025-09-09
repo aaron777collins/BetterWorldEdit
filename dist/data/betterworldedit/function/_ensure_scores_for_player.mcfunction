@@ -45,6 +45,7 @@ scoreboard players add @s _ix 0
 scoreboard players add @s _iy 0
 scoreboard players add @s _iz 0
 scoreboard players add @s _fill_active 0
+scoreboard players add @s _fill_desc 0
 
 # Selector stats
 scoreboard players add @s bwe_stat_selector 0
