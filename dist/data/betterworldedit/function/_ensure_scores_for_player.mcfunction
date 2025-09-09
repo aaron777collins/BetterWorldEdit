@@ -25,7 +25,7 @@
 
     # Config (set default once)
     scoreboard players add @s bwe_max_fill 0
-    execute unless score @s bwe_max_fill matches 1.. run scoreboard players set @s bwe_max_fill 30000
+    execute unless score @s bwe_max_fill matches 1.. run scoreboard players set @s bwe_max_fill 25
 
     # Scratch
     scoreboard players add @s _slice_h 0

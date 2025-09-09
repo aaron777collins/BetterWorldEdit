@@ -28,7 +28,7 @@ var num bwe_dim_z<@a> = 0;
 var num bwe_volume<@a> = 0;
 
 // Config per-player
-var num bwe_max_fill<@a> = 30000; // safe default under vanilla fill cap
+var num bwe_max_fill<@a> = 25; // safe default under vanilla fill cap
 
 // Scratch variables (per-player) used in helpers/loops
 var num _slice_h<@a> = 0;
@@ -255,7 +255,7 @@ function betterworldedit:_ensure_scores_for_player {
 
     # Config (set default once)
     scoreboard players add @s bwe_max_fill 0
-    execute unless score @s bwe_max_fill matches 1.. run scoreboard players set @s bwe_max_fill 30000
+    execute unless score @s bwe_max_fill matches 1.. run scoreboard players set @s bwe_max_fill 25
 
     # Scratch
     scoreboard players add @s _slice_h 0
@@ -348,7 +348,7 @@ function betterworldedit:set_stone {
             _y_end<@s> = 0;
             _slices<@s> = 0;
 
-            scheduledwhile $_y_start<@s>$ <= $bwe_max_y<@s>$ {
+            while $_y_start<@s>$ <= $bwe_max_y<@s>$ {
                 _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
                 if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
 
@@ -365,12 +365,12 @@ function betterworldedit:set_stone {
                 if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
 
                 _xs<@s> = $bwe_min_x<@s>$ + 0;
-                scheduledwhile $_xs<@s>$ <= $bwe_max_x<@s>$ {
+                while $_xs<@s>$ <= $bwe_max_x<@s>$ {
                     _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
                     if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
 
                     _zs<@s> = $bwe_min_z<@s>$ + 0;
-                    scheduledwhile $_zs<@s>$ <= $bwe_max_z<@s>$ {
+                    while $_zs<@s>$ <= $bwe_max_z<@s>$ {
                         _ze<@s> = $_zs<@s>$ + $_tile_z<@s>$ - 1;
                         if $_ze<@s>$ > $bwe_max_z<@s>$ { _ze<@s> = $bwe_max_z<@s>$; }
 

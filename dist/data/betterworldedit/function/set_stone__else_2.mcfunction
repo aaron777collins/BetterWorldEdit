@@ -12,4 +12,5 @@ scoreboard players add @s temp_3 0
 scoreboard players operation @s _y_start = @s temp_3
 scoreboard players set @s _y_end 0
 scoreboard players set @s _slices 0
+execute if score @s _y_start <= @s bwe_max_y run function betterworldedit:set_stone__while_1
 tellraw @a {"text":"Done (","extra":[{"score":{"name":"@s","objective":"_slices"}}," sub-fills)."]}
