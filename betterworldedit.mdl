@@ -28,7 +28,7 @@ var num bwe_dim_z<@a> = 0;
 var num bwe_volume<@a> = 0;
 
 // Config per-player
-var num bwe_max_fill<@a> = 25; // safe default under vanilla fill cap
+var num bwe_max_fill<@a> = 30000; // safe default under vanilla fill cap
 
 // Scratch variables (per-player) used in helpers/loops
 var num _slice_h<@a> = 0;
@@ -44,6 +44,10 @@ var num _tile_x<@a> = 0;
 var num _tile_z<@a> = 0;
 var num _area_limit<@a> = 0;
 var num _temp<@a> = 0;
+var num _ix<@a> = 0;
+var num _iy<@a> = 0;
+var num _iz<@a> = 0;
+var num _fill_active<@a> = 0;
 
 // Selector item usage tracking (two-tool system via custom_data: bwe_selector_1 / bwe_selector_2)
 var num bwe_stat_selector<@a> = 0;      // current brush use stat (mirrors objective)
@@ -106,6 +110,10 @@ function betterworldedit:init {
     scoreboard objectives add _tile_z dummy
     scoreboard objectives add _area_limit dummy
     scoreboard objectives add _temp dummy
+    scoreboard objectives add _ix dummy
+    scoreboard objectives add _iy dummy
+    scoreboard objectives add _iz dummy
+    scoreboard objectives add _fill_active dummy
 
     scoreboard objectives add bwe_stat_selector dummy
     scoreboard objectives add bwe_stat_selector_2 dummy
@@ -255,7 +263,7 @@ function betterworldedit:_ensure_scores_for_player {
 
     # Config (set default once)
     scoreboard players add @s bwe_max_fill 0
-    execute unless score @s bwe_max_fill matches 1.. run scoreboard players set @s bwe_max_fill 25
+    execute unless score @s bwe_max_fill matches 1.. run scoreboard players set @s bwe_max_fill 30000
 
     # Scratch
     scoreboard players add @s _slice_h 0
@@ -271,6 +279,10 @@ function betterworldedit:_ensure_scores_for_player {
     scoreboard players add @s _tile_z 0
     scoreboard players add @s _area_limit 0
     scoreboard players add @s _temp 0
+    scoreboard players add @s _ix 0
+    scoreboard players add @s _iy 0
+    scoreboard players add @s _iz 0
+    scoreboard players add @s _fill_active 0
 
     # Selector stats
     scoreboard players add @s bwe_stat_selector 0
@@ -283,6 +295,7 @@ function betterworldedit:_ensure_scores_for_player {
 function betterworldedit:main_tick {
     exec betterworldedit:_ensure_scores_for_player<@a>;
     exec betterworldedit:update_selector<@a>;
+    exec betterworldedit:process_fill_tick<@a>;
 }
 
 on_tick betterworldedit:main_tick;
@@ -338,55 +351,85 @@ function betterworldedit:set_stone {
             exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
             say "Done (single fill).";
         } else {
-            // Chunked: compute slice height so slice_area * slice_h <= max_fill
+            // Chunked: precompute tile sizes and schedule per-tick processing
             _base<@s> = $bwe_dim_x<@s>$ * $bwe_dim_z<@s>$;
             _slice_h<@s> = $bwe_max_fill<@s>$ / $_base<@s>$;
             if $_slice_h<@s>$ < 1 { _slice_h<@s> = 1; }
             if $_slice_h<@s>$ > $bwe_dim_y<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$; }
 
-            _y_start<@s> = $bwe_min_y<@s>$ + 0;
-            _y_end<@s> = 0;
-            _slices<@s> = 0;
+            // Determine tile sizes along X/Z to respect area_limit per slice
+            _area_limit<@s> = $bwe_max_fill<@s>$ / $_slice_h<@s>$;
+            if $_area_limit<@s>$ < 1 { _area_limit<@s> = 1; }
 
-            while $_y_start<@s>$ <= $bwe_max_y<@s>$ {
+            _tile_x<@s> = $_area_limit<@s>$ / $bwe_dim_z<@s>$;
+            if $_tile_x<@s>$ < 1 { _tile_x<@s> = 1; }
+            if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
+
+            _tile_z<@s> = $_area_limit<@s>$ / $_tile_x<@s>$;
+            if $_tile_z<@s>$ < 1 { _tile_z<@s> = 1; }
+            if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
+
+            // Initialize indices and activate the per-tick processor
+            _ix<@s> = 0;
+            _iy<@s> = 0;
+            _iz<@s> = 0;
+            _slices<@s> = 0;
+            _fill_active<@s> = 1;
+            say "Started chunked fill; running across ticks...";
+        }
+    }
+}
+
+function betterworldedit:process_fill_tick {
+    // If a chunked fill is active, process one sub-fill per tick per player
+    if $_fill_active<@s>$ == 1 {
+        // Compute layer start; finish if beyond bounds
+        _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
+        if $_y_start<@s>$ > $bwe_max_y<@s>$ {
+            _fill_active<@s> = 0;
+            say "Done ($_slices<@s>$ sub-fills).";
+        } else {
+            // Compute current row/col starts
+            _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+            _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
+
+            // Wrap Z -> X -> Y as needed
+            if $_zs<@s>$ > $bwe_max_z<@s>$ {
+                _iz<@s> = 0;
+                _ix<@s> = $_ix<@s>$ + 1;
+                _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
+                _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+            }
+
+            if $_xs<@s>$ > $bwe_max_x<@s>$ {
+                _ix<@s> = 0;
+                _iy<@s> = $_iy<@s>$ + 1;
+                _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+                _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
+                if $_y_start<@s>$ > $bwe_max_y<@s>$ {
+                    _fill_active<@s> = 0;
+                    say "Done ($_slices<@s>$ sub-fills).";
+                }
+            }
+
+            if $_fill_active<@s>$ == 1 {
+                // Compute ends with clamps
                 _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
                 if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
 
-                // Determine tile sizes along X/Z to respect area_limit per slice
-                _area_limit<@s> = $bwe_max_fill<@s>$ / $_slice_h<@s>$;
-                if $_area_limit<@s>$ < 1 { _area_limit<@s> = 1; }
+                _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
+                if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
 
-                _tile_x<@s> = $_area_limit<@s>$ / $bwe_dim_z<@s>$;
-                if $_tile_x<@s>$ < 1 { _tile_x<@s> = 1; }
-                if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
+                _ze<@s> = $_zs<@s>$ + $_tile_z<@s>$ - 1;
+                if $_ze<@s>$ > $bwe_max_z<@s>$ { _ze<@s> = $bwe_max_z<@s>$; }
 
-                _tile_z<@s> = $_area_limit<@s>$ / $_tile_x<@s>$;
-                if $_tile_z<@s>$ < 1 { _tile_z<@s> = 1; }
-                if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
+                // Execute one sub-fill
+                exec betterworldedit:_prepare_fill_ctx;
+                exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
 
-                _xs<@s> = $bwe_min_x<@s>$ + 0;
-                while $_xs<@s>$ <= $bwe_max_x<@s>$ {
-                    _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
-                    if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
-
-                    _zs<@s> = $bwe_min_z<@s>$ + 0;
-                    while $_zs<@s>$ <= $bwe_max_z<@s>$ {
-                        _ze<@s> = $_zs<@s>$ + $_tile_z<@s>$ - 1;
-                        if $_ze<@s>$ > $bwe_max_z<@s>$ { _ze<@s> = $bwe_max_z<@s>$; }
-
-                        exec betterworldedit:_prepare_fill_ctx;
-                        exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
-
-                        _slices<@s> = $_slices<@s>$ + 1;
-                        say "Filled #$_slices<@s>$: x $_xs<@s>$..$_xe<@s>$, y $_y_start<@s>$..$_y_end<@s>$, z $_zs<@s>$..$_ze<@s>$";
-
-                        _zs<@s> = $_ze<@s>$ + 1;
-                    }
-                    _xs<@s> = $_xe<@s>$ + 1;
-                }
-                _y_start<@s> = $_y_end<@s>$ + 1;
+                _slices<@s> = $_slices<@s>$ + 1;
+                _iz<@s> = $_iz<@s>$ + 1;
             }
-            say "Done ($_slices<@s>$ sub-fills).";
         }
     }
 }
