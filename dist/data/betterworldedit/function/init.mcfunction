@@ -27,7 +27,6 @@ scoreboard objectives add bwe_volume dummy
 scoreboard objectives add bwe_max_fill dummy
 
 scoreboard objectives add _slice_h dummy
-scoreboard objectives add _base dummy
 scoreboard objectives add _slices dummy
 scoreboard objectives add _y_start dummy
 scoreboard objectives add _y_end dummy
@@ -37,7 +36,6 @@ scoreboard objectives add _zs dummy
 scoreboard objectives add _ze dummy
 scoreboard objectives add _tile_x dummy
 scoreboard objectives add _tile_z dummy
-scoreboard objectives add _area_limit dummy
 scoreboard objectives add _temp dummy
 scoreboard objectives add _ix dummy
 scoreboard objectives add _iy dummy

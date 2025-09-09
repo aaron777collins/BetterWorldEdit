@@ -6,5 +6,12 @@ tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx",
 scoreboard players set @s _fill_desc 0
 execute if data storage betterworldedit:ctx req{block:"minecraft:air"} run scoreboard players set @s _fill_desc 1
 
-execute if score @s bwe_volume <= @s bwe_max_fill run function betterworldedit:fill_block__if_2
-execute unless score @s bwe_volume <= @s bwe_max_fill run function betterworldedit:fill_block__else_3
+scoreboard players operation @s _temp = @s bwe_max_fill
+scoreboard players operation @s temp_1 = @s _temp
+scoreboard players operation @s temp_1 /= @s bwe_dim_x
+scoreboard players operation @s _temp = @s temp_1
+scoreboard players operation @s temp_2 = @s _temp
+scoreboard players operation @s temp_2 /= @s bwe_dim_y
+scoreboard players operation @s _temp = @s temp_2
+execute if score @s _temp >= @s bwe_dim_z run function betterworldedit:fill_block__if_2
+execute unless score @s _temp >= @s bwe_dim_z run function betterworldedit:fill_block__else_3

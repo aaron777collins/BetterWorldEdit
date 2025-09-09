@@ -29,7 +29,6 @@ execute store result score @s bwe_max_fill run scoreboard players get @e[type=ar
 
 # Scratch
 scoreboard players add @s _slice_h 0
-scoreboard players add @s _base 0
 scoreboard players add @s _slices 0
 scoreboard players add @s _y_start 0
 scoreboard players add @s _y_end 0
@@ -39,7 +38,6 @@ scoreboard players add @s _zs 0
 scoreboard players add @s _ze 0
 scoreboard players add @s _tile_x 0
 scoreboard players add @s _tile_z 0
-scoreboard players add @s _area_limit 0
 scoreboard players add @s _temp 0
 scoreboard players add @s _ix 0
 scoreboard players add @s _iy 0

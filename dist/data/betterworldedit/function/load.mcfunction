@@ -21,7 +21,6 @@ scoreboard objectives add bwe_dim_z dummy "bwe_dim_z"
 scoreboard objectives add bwe_volume dummy "bwe_volume"
 scoreboard objectives add bwe_max_fill dummy "bwe_max_fill"
 scoreboard objectives add _slice_h dummy "_slice_h"
-scoreboard objectives add _base dummy "_base"
 scoreboard objectives add _slices dummy "_slices"
 scoreboard objectives add _y_start dummy "_y_start"
 scoreboard objectives add _y_end dummy "_y_end"
@@ -31,7 +30,6 @@ scoreboard objectives add _zs dummy "_zs"
 scoreboard objectives add _ze dummy "_ze"
 scoreboard objectives add _tile_x dummy "_tile_x"
 scoreboard objectives add _tile_z dummy "_tile_z"
-scoreboard objectives add _area_limit dummy "_area_limit"
 scoreboard objectives add _temp dummy "_temp"
 scoreboard objectives add _ix dummy "_ix"
 scoreboard objectives add _iy dummy "_iy"
@@ -76,6 +74,8 @@ scoreboard objectives add temp_32 dummy "temp_32"
 scoreboard objectives add temp_33 dummy "temp_33"
 scoreboard objectives add temp_34 dummy "temp_34"
 scoreboard objectives add temp_35 dummy "temp_35"
+scoreboard objectives add temp_36 dummy "temp_36"
+scoreboard objectives add temp_37 dummy "temp_37"
 scoreboard players set @a bwe_pos1_x 0
 scoreboard players set @a bwe_pos1_y 0
 scoreboard players set @a bwe_pos1_z 0
@@ -96,7 +96,6 @@ scoreboard players set @a bwe_dim_z 0
 scoreboard players set @a bwe_volume 0
 scoreboard players set @a bwe_max_fill 30000
 scoreboard players set @a _slice_h 0
-scoreboard players set @a _base 0
 scoreboard players set @a _slices 0
 scoreboard players set @a _y_start 0
 scoreboard players set @a _y_end 0
@@ -106,7 +105,6 @@ scoreboard players set @a _zs 0
 scoreboard players set @a _ze 0
 scoreboard players set @a _tile_x 0
 scoreboard players set @a _tile_z 0
-scoreboard players set @a _area_limit 0
 scoreboard players set @a _temp 0
 scoreboard players set @a _ix 0
 scoreboard players set @a _iy 0

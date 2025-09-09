@@ -32,7 +32,6 @@ var num bwe_max_fill<@a> = 30000; // safe default under vanilla fill cap
 
 // Scratch variables (per-player) used in helpers/loops
 var num _slice_h<@a> = 0;
-var num _base<@a> = 0;
 var num _slices<@a> = 0;
 var num _y_start<@a> = 0;
 var num _y_end<@a> = 0;
@@ -42,7 +41,6 @@ var num _zs<@a> = 0;
 var num _ze<@a> = 0;
 var num _tile_x<@a> = 0;
 var num _tile_z<@a> = 0;
-var num _area_limit<@a> = 0;
 var num _temp<@a> = 0;
 var num _ix<@a> = 0;
 var num _iy<@a> = 0;
@@ -102,7 +100,6 @@ function betterworldedit:init {
     scoreboard objectives add bwe_max_fill dummy
 
     scoreboard objectives add _slice_h dummy
-    scoreboard objectives add _base dummy
     scoreboard objectives add _slices dummy
     scoreboard objectives add _y_start dummy
     scoreboard objectives add _y_end dummy
@@ -112,7 +109,6 @@ function betterworldedit:init {
     scoreboard objectives add _ze dummy
     scoreboard objectives add _tile_x dummy
     scoreboard objectives add _tile_z dummy
-    scoreboard objectives add _area_limit dummy
     scoreboard objectives add _temp dummy
     scoreboard objectives add _ix dummy
     scoreboard objectives add _iy dummy
@@ -289,7 +285,6 @@ function betterworldedit:_ensure_scores_for_player {
 
     # Scratch
     scoreboard players add @s _slice_h 0
-    scoreboard players add @s _base 0
     scoreboard players add @s _slices 0
     scoreboard players add @s _y_start 0
     scoreboard players add @s _y_end 0
@@ -299,7 +294,6 @@ function betterworldedit:_ensure_scores_for_player {
     scoreboard players add @s _ze 0
     scoreboard players add @s _tile_x 0
     scoreboard players add @s _tile_z 0
-    scoreboard players add @s _area_limit 0
     scoreboard players add @s _temp 0
     scoreboard players add @s _ix 0
     scoreboard players add @s _iy 0
@@ -370,8 +364,11 @@ function betterworldedit:fill_block {
         execute if data storage betterworldedit:ctx req{block:"minecraft:air"} run scoreboard players set @s _fill_desc 1
         raw!$
 
-        // Single fill if within limit
-        if $bwe_volume<@s>$ <= $bwe_max_fill<@s>$ {
+        // Single fill if within limit (overflow-safe check via chained divisions)
+        _temp<@s> = $bwe_max_fill<@s>$;
+        _temp<@s> = $_temp<@s>$ / $bwe_dim_x<@s>$;
+        _temp<@s> = $_temp<@s>$ / $bwe_dim_y<@s>$;
+        if $_temp<@s>$ >= $bwe_dim_z<@s>$ {
             if $_fill_desc<@s>$ == 0 {
                 _y_start<@s> = $bwe_min_y<@s>$;
                 _y_end<@s> = $bwe_max_y<@s>$;
@@ -391,21 +388,25 @@ function betterworldedit:fill_block {
             tellraw @s [{"text":"Done","color":"green"},{"text":" (single fill)","color":"gray"}]
             raw!$
         } else {
-            // Chunked: precompute tile sizes and schedule per-tick processing
-            _base<@s> = $bwe_dim_x<@s>$ * $bwe_dim_z<@s>$;
-            _slice_h<@s> = $bwe_max_fill<@s>$ / $_base<@s>$;
+            // Chunked: precompute tile sizes (overflow-safe)
+            // slice_h = clamp( floor(max_fill / dim_x / dim_z), 1..dim_y )
+            _slice_h<@s> = $bwe_max_fill<@s>$;
+            _slice_h<@s> = $_slice_h<@s>$ / $bwe_dim_x<@s>$;
+            _slice_h<@s> = $_slice_h<@s>$ / $bwe_dim_z<@s>$;
             if $_slice_h<@s>$ < 1 { _slice_h<@s> = 1; }
             if $_slice_h<@s>$ > $bwe_dim_y<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$; }
 
-            // Determine tile sizes along X/Z to respect area_limit per slice
-            _area_limit<@s> = $bwe_max_fill<@s>$ / $_slice_h<@s>$;
-            if $_area_limit<@s>$ < 1 { _area_limit<@s> = 1; }
+            // area_limit per slice in _temp
+            _temp<@s> = $bwe_max_fill<@s>$ / $_slice_h<@s>$;
+            if $_temp<@s>$ < 1 { _temp<@s> = 1; }
 
-            _tile_x<@s> = $_area_limit<@s>$ / $bwe_dim_z<@s>$;
+            // tile_x = clamp(floor(area_limit / dim_z), 1..dim_x)
+            _tile_x<@s> = $_temp<@s>$ / $bwe_dim_z<@s>$;
             if $_tile_x<@s>$ < 1 { _tile_x<@s> = 1; }
             if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
 
-            _tile_z<@s> = $_area_limit<@s>$ / $_tile_x<@s>$;
+            // tile_z = clamp(floor(area_limit / tile_x), 1..dim_z)
+            _tile_z<@s> = $_temp<@s>$ / $_tile_x<@s>$;
             if $_tile_z<@s>$ < 1 { _tile_z<@s> = 1; }
             if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
 
