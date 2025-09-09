@@ -3,6 +3,7 @@
 tellraw @a {"text":"BetterWorldEdit initialized. Run /function betterworldedit:main"}
 
     scoreboard objectives add bwe_use_selector minecraft.used:minecraft.brush
+
     scoreboard objectives add bwe_pos1_x dummy
     scoreboard objectives add bwe_pos1_y dummy
     scoreboard objectives add bwe_pos1_z dummy
@@ -11,6 +12,7 @@ tellraw @a {"text":"BetterWorldEdit initialized. Run /function betterworldedit:m
     scoreboard objectives add bwe_pos2_z dummy
     scoreboard objectives add bwe_pos1_set dummy
     scoreboard objectives add bwe_pos2_set dummy
+
     scoreboard objectives add bwe_min_x dummy
     scoreboard objectives add bwe_min_y dummy
     scoreboard objectives add bwe_min_z dummy
@@ -21,18 +23,9 @@ tellraw @a {"text":"BetterWorldEdit initialized. Run /function betterworldedit:m
     scoreboard objectives add bwe_dim_y dummy
     scoreboard objectives add bwe_dim_z dummy
     scoreboard objectives add bwe_volume dummy
+
     scoreboard objectives add bwe_max_fill dummy
-    scoreboard objectives add bwe_outline_enabled dummy
-    scoreboard objectives add bwe_outline_step dummy
-    scoreboard objectives add _px dummy
-    scoreboard objectives add _py dummy
-    scoreboard objectives add _pz dummy
-    scoreboard objectives add _x dummy
-    scoreboard objectives add _y dummy
-    scoreboard objectives add _z dummy
-    scoreboard objectives add _mx dummy
-    scoreboard objectives add _yb dummy
-    scoreboard objectives add _yt dummy
+
     scoreboard objectives add _slice_h dummy
     scoreboard objectives add _base dummy
     scoreboard objectives add _slices dummy
@@ -46,6 +39,7 @@ tellraw @a {"text":"BetterWorldEdit initialized. Run /function betterworldedit:m
     scoreboard objectives add _tile_z dummy
     scoreboard objectives add _area_limit dummy
     scoreboard objectives add _temp dummy
+
     scoreboard objectives add bwe_stat_selector dummy
     scoreboard objectives add bwe_stat_selector_2 dummy
     scoreboard objectives add bwe_stat_prev_1 dummy

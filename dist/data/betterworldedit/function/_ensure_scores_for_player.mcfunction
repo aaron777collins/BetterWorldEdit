@@ -23,22 +23,12 @@
     scoreboard players add @s bwe_dim_z 0
     scoreboard players add @s bwe_volume 0
 
-    # Config
-    scoreboard players add @s bwe_max_fill 30000
-    scoreboard players add @s bwe_outline_enabled 0
-    scoreboard players add @s bwe_outline_step 1
+    # Config (set default once)
+    scoreboard players add @s bwe_max_fill 0
+    execute unless score @s bwe_max_fill matches 1.. run scoreboard players set @s bwe_max_fill 30000
 
-    # Scratch used in prints/loops to avoid blanks
-    scoreboard players add @s _px 0
-    scoreboard players add @s _py 0
-    scoreboard players add @s _pz 0
-    scoreboard players add @s _x 0
-    scoreboard players add @s _y 0
-    scoreboard players add @s _z 0
-    scoreboard players add @s _mx 0
-    scoreboard players add @s _yb 0
-    scoreboard players add @s _yt 0
-    scoreboard players add @s _slice_h 1
+    # Scratch
+    scoreboard players add @s _slice_h 0
     scoreboard players add @s _base 0
     scoreboard players add @s _slices 0
     scoreboard players add @s _y_start 0
@@ -47,4 +37,14 @@
     scoreboard players add @s _xe 0
     scoreboard players add @s _zs 0
     scoreboard players add @s _ze 0
+    scoreboard players add @s _tile_x 0
+    scoreboard players add @s _tile_z 0
+    scoreboard players add @s _area_limit 0
+    scoreboard players add @s _temp 0
+
+    # Selector stats
+    scoreboard players add @s bwe_stat_selector 0
+    scoreboard players add @s bwe_stat_selector_2 0
+    scoreboard players add @s bwe_stat_prev_1 0
+    scoreboard players add @s bwe_stat_prev_2 0
     
