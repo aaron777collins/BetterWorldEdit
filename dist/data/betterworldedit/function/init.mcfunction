@@ -1,6 +1,6 @@
 # Function: betterworldedit:init
 
-tellraw @a {"text":"BetterWorldEdit initialized. Run /function betterworldedit:main"}
+tellraw @a {"text":"BetterWorldEdit initialized. Run /function betterworldedit:help"}
 
 scoreboard objectives add bwe_use_selector minecraft.used:minecraft.brush
 

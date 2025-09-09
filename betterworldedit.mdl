@@ -59,7 +59,7 @@ var num bwe_stat_prev_2<@a> = 0;        // last seen stat when using Pos2 tool
 // Main / Init
 // =============================
 
-function betterworldedit:main {
+function betterworldedit:help {
     $!raw
     tellraw @s [{"text":"BetterWorldEdit","bold":true,"color":"aqua"},{"text":" - Commands","color":"gray"}]
     tellraw @s [{"text":" • ","color":"dark_gray"},{"text":"/function betterworldedit:pos1","color":"gold"},{"text":" - set position 1 (your current block)","color":"yellow"}]
@@ -74,7 +74,7 @@ function betterworldedit:main {
 }
 
 function betterworldedit:init {
-    say "BetterWorldEdit initialized. Run /function betterworldedit:main";
+    say "BetterWorldEdit initialized. Run /function betterworldedit:help";
     // Scoreboard objectives
     $!raw
     scoreboard objectives add bwe_use_selector minecraft.used:minecraft.brush
@@ -469,8 +469,7 @@ function betterworldedit:process_fill_tick {
 
 // Public macro: set requested block (string) and run chunked fill over current selection
 // Usage examples:
-//   exec betterworldedit:fill_selection '{block:"minecraft:oak_planks"}';
-//   exec betterworldedit:fill_selection with storage betterworldedit:req mypath.to.compound;
+//   /function betterworldedit:fill_selection {block:"minecraft:oak_planks"}
 function betterworldedit:fill_selection {
     $!rawdata remove storage betterworldedit:ctx req
 data modify storage betterworldedit:ctx req set value {}
@@ -480,8 +479,7 @@ data modify storage betterworldedit:ctx req.block set value "$(block)"raw!$
 
 // Set the global max sub-fill size easily via storage argument: {value:NUMBER}
 // Usage:
-//   exec betterworldedit:set_max_fill '{value:50000}';
-//   exec betterworldedit:set_max_fill with storage betterworldedit:req mypath.to.compound;
+//   /function betterworldedit:set_max_fill {value:50000}
 function betterworldedit:set_max_fill {
     exec betterworldedit:_ensure_global_config;
     $!raw

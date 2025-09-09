@@ -1,4 +1,4 @@
-# Function: betterworldedit:main
+# Function: betterworldedit:help
 
 
 tellraw @s [{"text":"BetterWorldEdit","bold":true,"color":"aqua"},{"text":" - Commands","color":"gray"}]
