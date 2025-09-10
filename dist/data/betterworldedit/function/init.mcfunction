@@ -43,6 +43,23 @@ scoreboard objectives add _iz dummy
 scoreboard objectives add _fill_active dummy
 scoreboard objectives add _fill_desc dummy
 
+scoreboard objectives add _op_mode dummy
+
+scoreboard objectives add _fi dummy
+scoreboard objectives add _u_idx dummy
+scoreboard objectives add _v_idx dummy
+scoreboard objectives add _tile_u dummy
+scoreboard objectives add _tile_v dummy
+scoreboard objectives add _us dummy
+scoreboard objectives add _ue dummy
+scoreboard objectives add _vs dummy
+scoreboard objectives add _ve dummy
+
+scoreboard objectives add _ej dummy
+scoreboard objectives add _seg_idx dummy
+
+scoreboard objectives add _mask_mode dummy
+
 scoreboard objectives add bwe_stat_selector dummy
 scoreboard objectives add bwe_stat_selector_2 dummy
 scoreboard objectives add bwe_stat_prev_1 dummy

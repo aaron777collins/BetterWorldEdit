@@ -46,6 +46,28 @@ var num _ix<@a> = 0;
 var num _iy<@a> = 0;
 var num _iz<@a> = 0;
 var num _fill_active<@a> = 0;
+var num _fill_desc<@a> = 0;
+
+// Operation mode: 1=solid, 2=hollow faces, 3=outline edges
+var num _op_mode<@a> = 0;
+
+// Hollow-face tiling state
+var num _fi<@a> = 0;        // face index 0..5
+var num _u_idx<@a> = 0;
+var num _v_idx<@a> = 0;
+var num _tile_u<@a> = 0;
+var num _tile_v<@a> = 0;
+var num _us<@a> = 0;
+var num _ue<@a> = 0;
+var num _vs<@a> = 0;
+var num _ve<@a> = 0;
+
+// Outline edges tiling state
+var num _ej<@a> = 0;        // edge index 0..11
+var num _seg_idx<@a> = 0;   // segment index along edge
+
+// Mask mode: 0=all, 1=keep, 2=destroy, 3=replace(filter)
+var num _mask_mode<@a> = 0;
 
 // Selector item usage tracking (two-tool system via custom_data: bwe_selector_1 / bwe_selector_2)
 var num bwe_stat_selector<@a> = 0;      // current brush use stat (mirrors objective)
@@ -63,11 +85,14 @@ function betterworldedit:help {
     tellraw @s [{"text":"/function betterworldedit:pos1","color":"gold"},{"text":" - set position 1 (your current block)","color":"yellow"}]
     tellraw @s [{"text":"/function betterworldedit:pos2","color":"gold"},{"text":" - set position 2 (your current block)","color":"yellow"}]
     tellraw @s [{"text":"/function betterworldedit:info","color":"gold"},{"text":" - show selection info","color":"yellow"}]
-    tellraw @s [{"text":"/function betterworldedit:fill_block","color":"gold"},{"text":" - fill selection with a block (chunked)","color":"yellow"}]
+    tellraw @s [{"text":"/function betterworldedit:fill ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\",mask:{mode:\"keep\"}}","color":"aqua"},{"text":" - fill solid (supports mask)","color":"yellow"}]
+    tellraw @s [{"text":"/function betterworldedit:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"aqua"},{"text":" - shell only (no seams)","color":"yellow"}]
+    tellraw @s [{"text":"/function betterworldedit:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\"}}","color":"aqua"},{"text":" - edges & corners only","color":"yellow"}]
+    tellraw @s [{"text":"Mask modes: ","color":"gray"},{"text":"all","color":"white"},{"text":", ","color":"gray"},{"text":"keep","color":"white"},{"text":", ","color":"gray"},{"text":"destroy","color":"white"},{"text":", ","color":"gray"},{"text":"replace(filter)","color":"white"}]
+    tellraw @s [{"text":"Example replace-tag: ","color":"gray"},{"text":"mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}","color":"aqua"}]
     tellraw @s [{"text":"/function betterworldedit:give_selector","color":"gold"},{"text":" - get selector tools (pos1 & pos2)","color":"yellow"}]
-    tellraw @s [{"text":"/function betterworldedit:fill_selection ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\"}","color":"aqua"},{"text":" - fill with any block","color":"yellow"}]
-    tellraw @s [{"text":"/function betterworldedit:set_max_fill ","color":"gold"},{"text":"{value:30000}","color":"aqua"},{"text":" - set max blocks per sub-fill. IT IS HIGHLY RECOMMENDED TO SET THIS TO 30000 OR LESS.","color":"yellow"}]
-    tellraw @s [{"text":"Global config:","color":"gray"},{"text":" armor stand tag ","color":"dark_gray"},{"text":"bwe_global_config","color":"aqua"},{"text":" controls max per op.","color":"gray"}]
+    tellraw @s [{"text":"/function betterworldedit:set_max_fill ","color":"gold"},{"text":"{value:30000}","color":"aqua"},{"text":" - set max blocks per sub-fill","color":"yellow"}]
+    tellraw @s [{"text":"Global config: ","color":"gray"},{"text":"armor stand tag ","color":"dark_gray"},{"text":"bwe_global_config","color":"aqua"},{"text":" controls max per op.","color":"gray"}]
     raw!$
 }
 
@@ -115,6 +140,23 @@ function betterworldedit:init {
     scoreboard objectives add _iz dummy
     scoreboard objectives add _fill_active dummy
     scoreboard objectives add _fill_desc dummy
+
+    scoreboard objectives add _op_mode dummy
+
+    scoreboard objectives add _fi dummy
+    scoreboard objectives add _u_idx dummy
+    scoreboard objectives add _v_idx dummy
+    scoreboard objectives add _tile_u dummy
+    scoreboard objectives add _tile_v dummy
+    scoreboard objectives add _us dummy
+    scoreboard objectives add _ue dummy
+    scoreboard objectives add _vs dummy
+    scoreboard objectives add _ve dummy
+
+    scoreboard objectives add _ej dummy
+    scoreboard objectives add _seg_idx dummy
+
+    scoreboard objectives add _mask_mode dummy
 
     scoreboard objectives add bwe_stat_selector dummy
     scoreboard objectives add bwe_stat_selector_2 dummy
@@ -301,6 +343,23 @@ function betterworldedit:_ensure_scores_for_player {
     scoreboard players add @s _fill_active 0
     scoreboard players add @s _fill_desc 0
 
+    scoreboard players add @s _op_mode 0
+
+    scoreboard players add @s _fi 0
+    scoreboard players add @s _u_idx 0
+    scoreboard players add @s _v_idx 0
+    scoreboard players add @s _tile_u 0
+    scoreboard players add @s _tile_v 0
+    scoreboard players add @s _us 0
+    scoreboard players add @s _ue 0
+    scoreboard players add @s _vs 0
+    scoreboard players add @s _ve 0
+
+    scoreboard players add @s _ej 0
+    scoreboard players add @s _seg_idx 0
+
+    scoreboard players add @s _mask_mode 0
+
     # Selector stats
     scoreboard players add @s bwe_stat_selector 0
     scoreboard players add @s bwe_stat_selector_2 0
@@ -317,9 +376,24 @@ function betterworldedit:main_tick {
 on_tick betterworldedit:main_tick;
 
 // =============================
-// Chunked fill
+// Chunked fill + Masked subfill helpers
 // =============================
 
+// Macros for different vanilla fill modes
+function betterworldedit:_fill_slice_all {
+    $fill $(x1) $(y1) $(z1) $(x2) $(y2) $(z2) $(block)
+}
+function betterworldedit:_fill_slice_keep {
+    $fill $(x1) $(y1) $(z1) $(x2) $(y2) $(z2) $(block) keep
+}
+function betterworldedit:_fill_slice_destroy {
+    $fill $(x1) $(y1) $(z1) $(x2) $(y2) $(z2) $(block) destroy
+}
+function betterworldedit:_fill_slice_replace {
+    $fill $(x1) $(y1) $(z1) $(x2) $(y2) $(z2) $(block) replace $(filter)
+}
+
+// Deprecated legacy macro (kept for reference)
 function betterworldedit:_fill_slice_macro {
     $fill $(x1) $(y1) $(z1) $(x2) $(y2) $(z2) $(block)
 }
@@ -338,6 +412,45 @@ function betterworldedit:_prepare_fill_ctx {
     execute store result storage betterworldedit:ctx fill.z2 int 1 run scoreboard players get @s _ze
     # Block id from request
     data modify storage betterworldedit:ctx fill.block set from storage betterworldedit:ctx req.block
+    # Optional mask filter string for replace-mode
+    execute if data storage betterworldedit:ctx req{filter:""} run data remove storage betterworldedit:ctx req filter
+    execute if data storage betterworldedit:ctx req{filter} run data modify storage betterworldedit:ctx fill.filter set from storage betterworldedit:ctx req.filter
+    raw!$
+}
+
+// Runtime dispatch to the proper vanilla fill variant based on _mask_mode
+function betterworldedit:_do_subfill {
+    exec betterworldedit:_prepare_fill_ctx;
+    if $_mask_mode<@s>$ == 0 {
+        exec betterworldedit:_fill_slice_all with storage betterworldedit:ctx fill;
+    } else {
+        if $_mask_mode<@s>$ == 1 {
+            exec betterworldedit:_fill_slice_keep with storage betterworldedit:ctx fill;
+        } else {
+            if $_mask_mode<@s>$ == 2 {
+                exec betterworldedit:_fill_slice_destroy with storage betterworldedit:ctx fill;
+            } else {
+                exec betterworldedit:_fill_slice_replace with storage betterworldedit:ctx fill;
+            }
+        }
+    }
+}
+
+// Parse mask from storage req.mask{mode,filter} to per-player scoreboard + req.filter string
+function betterworldedit:_parse_mask {
+    $!raw
+    # default
+    scoreboard players set @s _mask_mode 0
+
+    # mode: keep
+    execute if data storage betterworldedit:ctx req{mask:{mode:"keep"}} run scoreboard players set @s _mask_mode 1
+    # mode: destroy
+    execute if data storage betterworldedit:ctx req{mask:{mode:"destroy"}} run scoreboard players set @s _mask_mode 2
+    # mode: replace (requires filter)
+    execute if data storage betterworldedit:ctx req{mask:{mode:"replace"}} run scoreboard players set @s _mask_mode 3
+
+    # copy filter if present (string like "minecraft:stone" or "#minecraft:leaves")
+    execute if data storage betterworldedit:ctx req{mask:{filter}} run data modify storage betterworldedit:ctx req.filter set from storage betterworldedit:ctx req.mask.filter
     raw!$
 }
 
@@ -355,10 +468,10 @@ function betterworldedit:fill_block {
         raw!$
     } else {
         $!raw
-        tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":"... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":") max per op="},{"score":{"name":"@s","objective":"bwe_max_fill"}},{"text":")"}]
+        tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":" (mask:"},{"score":{"name":"@s","objective":"_mask_mode"}},{"text":") ... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":") max per op="},{"score":{"name":"@s","objective":"bwe_max_fill"}},{"text":")"}]
         raw!$
 
-        // Determine fill direction: liquids/air -> top-down (desc), else bottom-up (asc)
+        // Determine fill direction for solid only: liquids/air -> top-down (desc), else bottom-up (asc)
         $!raw
         scoreboard players set @s _fill_desc 0
         execute if data storage betterworldedit:ctx req{block:"minecraft:air"} run scoreboard players set @s _fill_desc 1
@@ -382,8 +495,7 @@ function betterworldedit:fill_block {
             scoreboard players operation @s _zs = @s bwe_min_z
             scoreboard players operation @s _ze = @s bwe_max_z
             raw!$
-            exec betterworldedit:_prepare_fill_ctx;
-            exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
+            exec betterworldedit:_do_subfill;
             $!raw
             tellraw @s [{"text":"Done","color":"green"},{"text":" (single fill)","color":"gray"}]
             raw!$
@@ -424,115 +536,574 @@ function betterworldedit:fill_block {
 }
 
 function betterworldedit:process_fill_tick {
-    // If a chunked fill is active, process one sub-fill per tick per player
+    // If a chunked operation is active, process one sub-fill per tick per player
     if $_fill_active<@s>$ == 1 {
-        // Compute layer start; finish if beyond bounds
-        if $_fill_desc<@s>$ == 0 {
-            _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
-        } else {
-            _y_start<@s> = $bwe_max_y<@s>$ - ($_iy<@s>$ * $_slice_h<@s>$);
+
+        // ============ MODE 1: SOLID (existing logic; fixed control flow) ============
+        if $_op_mode<@s>$ == 1 {
+
+            // Compute layer start based on direction
+            if $_fill_desc<@s>$ == 0 {
+                _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
+            } else {
+                _y_start<@s> = $bwe_max_y<@s>$ - ($_iy<@s>$ * $_slice_h<@s>$);
+            }
+
+            // Finish or continue (two branches; no stray else)
+            if $_fill_desc<@s>$ == 0 {
+                if $_y_start<@s>$ > $bwe_max_y<@s>$ {
+                    _fill_active<@s> = 0;
+                    $!raw tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}] raw!$
+                } else {
+                    // Compute row/col starts
+                    _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+                    _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
+
+                    // Wrap Z -> X -> Y
+                    if $_zs<@s>$ > $bwe_max_z<@s>$ {
+                        _iz<@s> = 0;
+                        _ix<@s> = $_ix<@s>$ + 1;
+                        _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
+                        _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+                    }
+
+                    if $_xs<@s>$ > $bwe_max_x<@s>$ {
+                        _ix<@s> = 0;
+                        _iy<@s> = $_iy<@s>$ + 1;
+                        _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+                        if $_fill_desc<@s>$ == 0 {
+                            _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
+                        } else {
+                            _y_start<@s> = $bwe_max_y<@s>$ - ($_iy<@s>$ * $_slice_h<@s>$);
+                        }
+                    }
+
+                    if $_fill_active<@s>$ == 1 {
+                        // Compute ends + clamps (respect direction)
+                        if $_fill_desc<@s>$ == 0 {
+                            _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
+                            if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
+                        } else {
+                            _y_end<@s> = $_y_start<@s>$ - $_slice_h<@s>$ + 1;
+                            if $_y_end<@s>$ < $bwe_min_y<@s>$ { _y_end<@s> = $bwe_min_y<@s>$; }
+                            if $_y_start<@s>$ > $_y_end<@s>$ {
+                                _temp<@s> = $_y_start<@s>$;
+                                _y_start<@s> = $_y_end<@s>$;
+                                _y_end<@s> = $_temp<@s>$;
+                            }
+                        }
+
+                        _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
+                        if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
+
+                        _ze<@s> = $_zs<@s>$ + $_tile_z<@s>$ - 1;
+                        if $_ze<@s>$ > $bwe_max_z<@s>$ { _ze<@s> = $bwe_max_z<@s>$; }
+
+                        // Sub-fill with mask
+                        exec betterworldedit:_do_subfill;
+
+                        _slices<@s> = $_slices<@s>$ + 1;
+                        _iz<@s> = $_iz<@s>$ + 1;
+                    }
+                }
+            } else {
+                if $_y_start<@s>$ < $bwe_min_y<@s>$ {
+                    _fill_active<@s> = 0;
+                    $!raw tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}] raw!$
+                } else {
+                    // Compute row/col starts (desc)
+                    _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+                    _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
+
+                    if $_zs<@s>$ > $bwe_max_z<@s>$ {
+                        _iz<@s> = 0;
+                        _ix<@s> = $_ix<@s>$ + 1;
+                        _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
+                        _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+                    }
+
+                    if $_xs<@s>$ > $bwe_max_x<@s>$ {
+                        _ix<@s> = 0;
+                        _iy<@s> = $_iy<@s>$ + 1;
+                        _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+                        if $_fill_desc<@s>$ == 0 {
+                            _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
+                        } else {
+                            _y_start<@s> = $bwe_max_y<@s>$ - ($_iy<@s>$ * $_slice_h<@s>$);
+                        }
+                    }
+
+                    if $_fill_active<@s>$ == 1 {
+                        if $_fill_desc<@s>$ == 0 {
+                            _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
+                            if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
+                        } else {
+                            _y_end<@s> = $_y_start<@s>$ - $_slice_h<@s>$ + 1;
+                            if $_y_end<@s>$ < $bwe_min_y<@s>$ { _y_end<@s> = $bwe_min_y<@s>$; }
+                            if $_y_start<@s>$ > $_y_end<@s>$ {
+                                _temp<@s> = $_y_start<@s>$;
+                                _y_start<@s> = $_y_end<@s>$;
+                                _y_end<@s> = $_temp<@s>$;
+                            }
+                        }
+
+                        _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
+                        if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
+
+                        _ze<@s> = $_zs<@s>$ + $_tile_z<@s>$ - 1;
+                        if $_ze<@s>$ > $bwe_max_z<@s>$ { _ze<@s> = $bwe_max_z<@s>$; }
+
+                        exec betterworldedit:_do_subfill;
+
+                        _slices<@s> = $_slices<@s>$ + 1;
+                        _iz<@s> = $_iz<@s>$ + 1;
+                    }
+                }
+            }
         }
 
-        if $_fill_desc<@s>$ == 0 {
-            if $_y_start<@s>$ > $bwe_max_y<@s>$ {
-                _fill_active<@s> = 0;
-                $!raw
-                tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
-                raw!$
-            }
-        } else {
-            if $_y_start<@s>$ < $bwe_min_y<@s>$ {
-                _fill_active<@s> = 0;
-                $!raw
-                tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
-                raw!$
-            }
-        }
+        // ============ MODE 2: HOLLOW (6 faces, 2D tiling; no logical operators) ============
         else {
-            // Compute current row/col starts
-            _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
-            _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
+            if $_op_mode<@s>$ == 2 {
 
-            // Wrap Z -> X -> Y as needed
-            if $_zs<@s>$ > $bwe_max_z<@s>$ {
-                _iz<@s> = 0;
-                _ix<@s> = $_ix<@s>$ + 1;
-                _zs<@s> = $bwe_min_z<@s>$ + ($_iz<@s>$ * $_tile_z<@s>$);
-                _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
+                // Face 0: bottom Ymin (u=X, v=Z, y=bwe_min_y)
+                if $_fi<@s>$ == 0 {
+                    _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_z<@s>$;
+                    if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
+                    if $_tile_u<@s>$ > $bwe_dim_x<@s>$ { _tile_u<@s> = $bwe_dim_x<@s>$; }
+                    _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
+                    if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
+                    if $_tile_v<@s>$ > $bwe_dim_z<@s>$ { _tile_v<@s> = $bwe_dim_z<@s>$; }
+
+                    _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                    _vs<@s> = $bwe_min_z<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+
+                    if $_vs<@s>$ > $bwe_max_z<@s>$ {
+                        _v_idx<@s> = 0;
+                        _u_idx<@s> = $_u_idx<@s>$ + 1;
+                        _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                        _vs<@s> = $bwe_min_z<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+                    }
+
+                    if $_us<@s>$ > $bwe_max_x<@s>$ {
+                        _u_idx<@s> = 0;
+                        _v_idx<@s> = 0;
+                        _fi<@s> = 1;
+                    } else {
+                        _ue<@s> = $_us<@s>$ + $_tile_u<@s>$ - 1;
+                        if $_ue<@s>$ > $bwe_max_x<@s>$ { _ue<@s> = $bwe_max_x<@s>$; }
+                        _ve<@s> = $_vs<@s>$ + $_tile_v<@s>$ - 1;
+                        if $_ve<@s>$ > $bwe_max_z<@s>$ { _ve<@s> = $bwe_max_z<@s>$; }
+
+                        _xs<@s> = $_us<@s>$; _xe<@s> = $_ue<@s>$;
+                        _zs<@s> = $_vs<@s>$; _ze<@s> = $_ve<@s>$;
+                        _y_start<@s> = $bwe_min_y<@s>$; _y_end<@s> = $bwe_min_y<@s>$;
+
+                        exec betterworldedit:_do_subfill;
+
+                        _slices<@s> = $_slices<@s>$ + 1;
+                        _v_idx<@s> = $_v_idx<@s>$ + 1;
+                    }
+                }
+                else {
+                    // Face 1: top Ymax (u=X, v=Z, y=bwe_max_y)
+                    if $_fi<@s>$ == 1 {
+                        _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_z<@s>$;
+                        if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
+                        if $_tile_u<@s>$ > $bwe_dim_x<@s>$ { _tile_u<@s> = $bwe_dim_x<@s>$; }
+                        _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
+                        if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
+                        if $_tile_v<@s>$ > $bwe_dim_z<@s>$ { _tile_v<@s> = $bwe_dim_z<@s>$; }
+
+                        _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                        _vs<@s> = $bwe_min_z<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+
+                        if $_vs<@s>$ > $bwe_max_z<@s>$ {
+                            _v_idx<@s> = 0;
+                            _u_idx<@s> = $_u_idx<@s>$ + 1;
+                            _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                            _vs<@s> = $bwe_min_z<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+                        }
+
+                        if $_us<@s>$ > $bwe_max_x<@s>$ {
+                            _u_idx<@s> = 0;
+                            _v_idx<@s> = 0;
+                            _fi<@s> = 2;
+                        } else {
+                            _ue<@s> = $_us<@s>$ + $_tile_u<@s>$ - 1;
+                            if $_ue<@s>$ > $bwe_max_x<@s>$ { _ue<@s> = $bwe_max_x<@s>$; }
+                            _ve<@s> = $_vs<@s>$ + $_tile_v<@s>$ - 1;
+                            if $_ve<@s>$ > $bwe_max_z<@s>$ { _ve<@s> = $bwe_max_z<@s>$; }
+
+                            _xs<@s> = $_us<@s>$; _xe<@s> = $_ue<@s>$;
+                            _zs<@s> = $_vs<@s>$; _ze<@s> = $_ve<@s>$;
+                            _y_start<@s> = $bwe_max_y<@s>$; _y_end<@s> = $bwe_max_y<@s>$;
+
+                            exec betterworldedit:_do_subfill;
+
+                            _slices<@s> = $_slices<@s>$ + 1;
+                            _v_idx<@s> = $_v_idx<@s>$ + 1;
+                        }
+                    }
+                    else {
+                        // Face 2: north Zmin (u=X, v=Y, z=bwe_min_z)
+                        if $_fi<@s>$ == 2 {
+                            _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_y<@s>$;
+                            if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
+                            if $_tile_u<@s>$ > $bwe_dim_x<@s>$ { _tile_u<@s> = $bwe_dim_x<@s>$; }
+                            _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
+                            if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
+                            if $_tile_v<@s>$ > $bwe_dim_y<@s>$ { _tile_v<@s> = $bwe_dim_y<@s>$; }
+
+                            _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                            _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+
+                            if $_vs<@s>$ > $bwe_max_y<@s>$ {
+                                _v_idx<@s> = 0;
+                                _u_idx<@s> = $_u_idx<@s>$ + 1;
+                                _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                                _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+                            }
+
+                            if $_us<@s>$ > $bwe_max_x<@s>$ {
+                                _u_idx<@s> = 0;
+                                _v_idx<@s> = 0;
+                                _fi<@s> = 3;
+                            } else {
+                                _ue<@s> = $_us<@s>$ + $_tile_u<@s>$ - 1;
+                                if $_ue<@s>$ > $bwe_max_x<@s>$ { _ue<@s> = $bwe_max_x<@s>$; }
+                                _ve<@s> = $_vs<@s>$ + $_tile_v<@s>$ - 1;
+                                if $_ve<@s>$ > $bwe_max_y<@s>$ { _ve<@s> = $bwe_max_y<@s>$; }
+
+                                _xs<@s> = $_us<@s>$; _xe<@s> = $_ue<@s>$;
+                                _y_start<@s> = $_vs<@s>$; _y_end<@s> = $_ve<@s>$;
+                                _zs<@s> = $bwe_min_z<@s>$; _ze<@s> = $bwe_min_z<@s>$;
+
+                                exec betterworldedit:_do_subfill;
+
+                                _slices<@s> = $_slices<@s>$ + 1;
+                                _v_idx<@s> = $_v_idx<@s>$ + 1;
+                            }
+                        }
+                        else {
+                            // Face 3: south Zmax (u=X, v=Y, z=bwe_max_z)
+                            if $_fi<@s>$ == 3 {
+                                _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_y<@s>$;
+                                if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
+                                if $_tile_u<@s>$ > $bwe_dim_x<@s>$ { _tile_u<@s> = $bwe_dim_x<@s>$; }
+                                _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
+                                if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
+                                if $_tile_v<@s>$ > $bwe_dim_y<@s>$ { _tile_v<@s> = $bwe_dim_y<@s>$; }
+
+                                _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                                _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+
+                                if $_vs<@s>$ > $bwe_max_y<@s>$ {
+                                    _v_idx<@s> = 0;
+                                    _u_idx<@s> = $_u_idx<@s>$ + 1;
+                                    _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                                    _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+                                }
+
+                                if $_us<@s>$ > $bwe_max_x<@s>$ {
+                                    _u_idx<@s> = 0;
+                                    _v_idx<@s> = 0;
+                                    _fi<@s> = 4;
+                                } else {
+                                    _ue<@s> = $_us<@s>$ + $_tile_u<@s>$ - 1;
+                                    if $_ue<@s>$ > $bwe_max_x<@s>$ { _ue<@s> = $bwe_max_x<@s>$; }
+                                    _ve<@s> = $_vs<@s>$ + $_tile_v<@s>$ - 1;
+                                    if $_ve<@s>$ > $bwe_max_y<@s>$ { _ve<@s> = $bwe_max_y<@s>$; }
+
+                                    _xs<@s> = $_us<@s>$; _xe<@s> = $_ue<@s>$;
+                                    _y_start<@s> = $_vs<@s>$; _y_end<@s> = $_ve<@s>$;
+                                    _zs<@s> = $bwe_max_z<@s>$; _ze<@s> = $bwe_max_z<@s>$;
+
+                                    exec betterworldedit:_do_subfill;
+
+                                    _slices<@s> = $_slices<@s>$ + 1;
+                                    _v_idx<@s> = $_v_idx<@s>$ + 1;
+                                }
+                            }
+                            else {
+                                // Face 4: west Xmin (u=Z, v=Y, x=bwe_min_x)
+                                if $_fi<@s>$ == 4 {
+                                    _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_y<@s>$;
+                                    if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
+                                    if $_tile_u<@s>$ > $bwe_dim_z<@s>$ { _tile_u<@s> = $bwe_dim_z<@s>$; }
+                                    _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
+                                    if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
+                                    if $_tile_v<@s>$ > $bwe_dim_y<@s>$ { _tile_v<@s> = $bwe_dim_y<@s>$; }
+
+                                    _us<@s> = $bwe_min_z<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                                    _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+
+                                    if $_vs<@s>$ > $bwe_max_y<@s>$ {
+                                        _v_idx<@s> = 0;
+                                        _u_idx<@s> = $_u_idx<@s>$ + 1;
+                                        _us<@s> = $bwe_min_z<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                                        _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+                                    }
+
+                                    if $_us<@s>$ > $bwe_max_z<@s>$ {
+                                        _u_idx<@s> = 0;
+                                        _v_idx<@s> = 0;
+                                        _fi<@s> = 5;
+                                    } else {
+                                        _ue<@s> = $_us<@s>$ + $_tile_u<@s>$ - 1;
+                                        if $_ue<@s>$ > $bwe_max_z<@s>$ { _ue<@s> = $bwe_max_z<@s>$; }
+                                        _ve<@s> = $_vs<@s>$ + $_tile_v<@s>$ - 1;
+                                        if $_ve<@s>$ > $bwe_max_y<@s>$ { _ve<@s> = $bwe_max_y<@s>$; }
+
+                                        _zs<@s> = $_us<@s>$; _ze<@s> = $_ue<@s>$;
+                                        _y_start<@s> = $_vs<@s>$; _y_end<@s> = $_ve<@s>$;
+                                        _xs<@s> = $bwe_min_x<@s>$; _xe<@s> = $bwe_min_x<@s>$;
+
+                                        exec betterworldedit:_do_subfill;
+
+                                        _slices<@s> = $_slices<@s>$ + 1;
+                                        _v_idx<@s> = $_v_idx<@s>$ + 1;
+                                    }
+                                }
+                                else {
+                                    // Face 5: east Xmax (u=Z, v=Y, x=bwe_max_x)
+                                    if $_fi<@s>$ == 5 {
+                                        _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_y<@s>$;
+                                        if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
+                                        if $_tile_u<@s>$ > $bwe_dim_z<@s>$ { _tile_u<@s> = $bwe_dim_z<@s>$; }
+                                        _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
+                                        if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
+                                        if $_tile_v<@s>$ > $bwe_dim_y<@s>$ { _tile_v<@s> = $bwe_dim_y<@s>$; }
+
+                                        _us<@s> = $bwe_min_z<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                                        _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+
+                                        if $_vs<@s>$ > $bwe_max_y<@s>$ {
+                                            _v_idx<@s> = 0;
+                                            _u_idx<@s> = $_u_idx<@s>$ + 1;
+                                            _us<@s> = $bwe_min_z<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
+                                            _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
+                                        }
+
+                                        if $_us<@s>$ > $bwe_max_z<@s>$ {
+                                            _u_idx<@s> = 0;
+                                            _v_idx<@s> = 0;
+                                            _fi<@s> = 6; // sentinel beyond last face
+                                        } else {
+                                            _ue<@s> = $_us<@s>$ + $_tile_u<@s>$ - 1;
+                                            if $_ue<@s>$ > $bwe_max_z<@s>$ { _ue<@s> = $bwe_max_z<@s>$; }
+                                            _ve<@s> = $_vs<@s>$ + $_tile_v<@s>$ - 1;
+                                            if $_ve<@s>$ > $bwe_max_y<@s>$ { _ve<@s> = $bwe_max_y<@s>$; }
+
+                                            _zs<@s> = $_us<@s>$; _ze<@s> = $_ue<@s>$;
+                                            _y_start<@s> = $_vs<@s>$; _y_end<@s> = $_ve<@s>$;
+                                            _xs<@s> = $bwe_max_x<@s>$; _xe<@s> = $bwe_max_x<@s>$;
+
+                                            exec betterworldedit:_do_subfill;
+
+                                            _slices<@s> = $_slices<@s>$ + 1;
+                                            _v_idx<@s> = $_v_idx<@s>$ + 1;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Finish when all faces are done
+                if $_fi<@s>$ > 5 {
+                    _fill_active<@s> = 0;
+                    $!raw tellraw @s [{"text":"Done (hollow faces) ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}] raw!$
+                }
             }
+            else {
+                // ============ MODE 3: OUTLINE (12 edges, segmented) ============
+                if $_op_mode<@s>$ == 3 {
 
-            if $_xs<@s>$ > $bwe_max_x<@s>$ {
-                _ix<@s> = 0;
-                _iy<@s> = $_iy<@s>$ + 1;
-                _xs<@s> = $bwe_min_x<@s>$ + ($_ix<@s>$ * $_tile_x<@s>$);
-                // Recompute _y_start based on direction
-                if $_fill_desc<@s>$ == 0 {
-                    _y_start<@s> = $bwe_min_y<@s>$ + ($_iy<@s>$ * $_slice_h<@s>$);
-                } else {
-                    _y_start<@s> = $bwe_max_y<@s>$ - ($_iy<@s>$ * $_slice_h<@s>$);
-                }
-                if $_fill_desc<@s>$ == 0 {
-                    if $_y_start<@s>$ > $bwe_max_y<@s>$ {
+                    // X edges (0..3)
+                    if $_ej<@s>$ <= 3 {
+                        _temp<@s> = $_seg_idx<@s>$ * $bwe_max_fill<@s>$; // offset along X
+                        if $_temp<@s>$ >= $bwe_dim_x<@s>$ {
+                            _seg_idx<@s> = 0; _ej<@s> = $_ej<@s>$ + 1;
+                        } else {
+                            _ix<@s> = $_temp<@s>$;
+                            _slice_h<@s> = $bwe_max_fill<@s>$;
+                            if $_slice_h<@s>$ > $bwe_dim_x<@s>$ - $_ix<@s>$ { _slice_h<@s> = $bwe_dim_x<@s>$ - $_ix<@s>$; }
+
+                            // 0: y=min,z=min | 1: y=min,z=max | 2: y=max,z=min | 3: y=max,z=max
+                            if $_ej<@s>$ == 0 { _y_start<@s> = $bwe_min_y<@s>$; _y_end<@s> = $bwe_min_y<@s>$; _zs<@s> = $bwe_min_z<@s>$; _ze<@s> = $bwe_min_z<@s>$; }
+                            else {
+                                if $_ej<@s>$ == 1 { _y_start<@s> = $bwe_min_y<@s>$; _y_end<@s> = $bwe_min_y<@s>$; _zs<@s> = $bwe_max_z<@s>$; _ze<@s> = $bwe_max_z<@s>$; }
+                                else {
+                                    if $_ej<@s>$ == 2 { _y_start<@s> = $bwe_max_y<@s>$; _y_end<@s> = $bwe_max_y<@s>$; _zs<@s> = $bwe_min_z<@s>$; _ze<@s> = $bwe_min_z<@s>$; }
+                                    else { _y_start<@s> = $bwe_max_y<@s>$; _y_end<@s> = $bwe_max_y<@s>$; _zs<@s> = $bwe_max_z<@s>$; _ze<@s> = $bwe_max_z<@s>$; }
+                                }
+                            }
+
+                            _xs<@s> = $bwe_min_x<@s>$ + $_ix<@s>$;
+                            _xe<@s> = $_xs<@s>$ + $_slice_h<@s>$ - 1;
+
+                            exec betterworldedit:_do_subfill;
+
+                            _slices<@s> = $_slices<@s>$ + 1;
+                            _seg_idx<@s> = $_seg_idx<@s>$ + 1;
+                        }
+                    }
+                    else {
+                        // Z edges (4..7)
+                        if $_ej<@s>$ <= 7 {
+                            _temp<@s> = $_seg_idx<@s>$ * $bwe_max_fill<@s>$; // offset along Z
+                            if $_temp<@s>$ >= $bwe_dim_z<@s>$ {
+                                _seg_idx<@s> = 0; _ej<@s> = $_ej<@s>$ + 1;
+                            } else {
+                                _iz<@s> = $_temp<@s>$;
+                                _slice_h<@s> = $bwe_max_fill<@s>$;
+                                if $_slice_h<@s>$ > $bwe_dim_z<@s>$ - $_iz<@s>$ { _slice_h<@s> = $bwe_dim_z<@s>$ - $_iz<@s>$; }
+
+                                // 4: y=min,x=min | 5: y=min,x=max | 6: y=max,x=min | 7: y=max,x=max
+                                if $_ej<@s>$ == 4 { _y_start<@s> = $bwe_min_y<@s>$; _y_end<@s> = $bwe_min_y<@s>$; _xs<@s> = $bwe_min_x<@s>$; _xe<@s> = $bwe_min_x<@s>$; }
+                                else {
+                                    if $_ej<@s>$ == 5 { _y_start<@s> = $bwe_min_y<@s>$; _y_end<@s> = $bwe_min_y<@s>$; _xs<@s> = $bwe_max_x<@s>$; _xe<@s> = $bwe_max_x<@s>$; }
+                                    else {
+                                        if $_ej<@s>$ == 6 { _y_start<@s> = $bwe_max_y<@s>$; _y_end<@s> = $bwe_max_y<@s>$; _xs<@s> = $bwe_min_x<@s>$; _xe<@s> = $bwe_min_x<@s>$; }
+                                        else { _y_start<@s> = $bwe_max_y<@s>$; _y_end<@s> = $bwe_max_y<@s>$; _xs<@s> = $bwe_max_x<@s>$; _xe<@s> = $bwe_max_x<@s>$; }
+                                    }
+                                }
+
+                                _zs<@s> = $bwe_min_z<@s>$ + $_iz<@s>$;
+                                _ze<@s> = $_zs<@s>$ + $_slice_h<@s>$ - 1;
+
+                                exec betterworldedit:_do_subfill;
+
+                                _slices<@s> = $_slices<@s>$ + 1;
+                                _seg_idx<@s> = $_seg_idx<@s>$ + 1;
+                            }
+                        }
+                        else {
+                            // Y edges (8..11)
+                            _temp<@s> = $_seg_idx<@s>$ * $bwe_max_fill<@s>$; // offset along Y
+                            if $_temp<@s>$ >= $bwe_dim_y<@s>$ {
+                                _seg_idx<@s> = 0; _ej<@s> = $_ej<@s>$ + 1;
+                            } else {
+                                _iy<@s> = $_temp<@s>$;
+                                _slice_h<@s> = $bwe_max_fill<@s>$;
+                                if $_slice_h<@s>$ > $bwe_dim_y<@s>$ - $_iy<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$ - $_iy<@s>$; }
+
+                                // 8: x=min,z=min | 9: x=max,z=min | 10: x=min,z=max | 11: x=max,z=max
+                                if $_ej<@s>$ == 8 { _xs<@s> = $bwe_min_x<@s>$; _xe<@s> = $bwe_min_x<@s>$; _zs<@s> = $bwe_min_z<@s>$; _ze<@s> = $bwe_min_z<@s>$; }
+                                else {
+                                    if $_ej<@s>$ == 9 { _xs<@s> = $bwe_max_x<@s>$; _xe<@s> = $bwe_max_x<@s>$; _zs<@s> = $bwe_min_z<@s>$; _ze<@s> = $bwe_min_z<@s>$; }
+                                    else {
+                                        if $_ej<@s>$ == 10 { _xs<@s> = $bwe_min_x<@s>$; _xe<@s> = $bwe_min_x<@s>$; _zs<@s> = $bwe_max_z<@s>$; _ze<@s> = $bwe_max_z<@s>$; }
+                                        else { _xs<@s> = $bwe_max_x<@s>$; _xe<@s> = $bwe_max_x<@s>$; _zs<@s> = $bwe_max_z<@s>$; _ze<@s> = $bwe_max_z<@s>$; }
+                                    }
+                                }
+
+                                _y_start<@s> = $bwe_min_y<@s>$ + $_iy<@s>$;
+                                _y_end<@s>   = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
+
+                                exec betterworldedit:_do_subfill;
+
+                                _slices<@s> = $_slices<@s>$ + 1;
+                                _seg_idx<@s> = $_seg_idx<@s>$ + 1;
+                            }
+                        }
+                    }
+
+                    // Finish when all 12 edges are complete
+                    if $_ej<@s>$ > 11 {
                         _fill_active<@s> = 0;
-                        $!raw
-                        tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
-                        raw!$
-                    }
-                } else {
-                    if $_y_start<@s>$ < $bwe_min_y<@s>$ {
-                        _fill_active<@s> = 0;
-                        $!raw
-                        tellraw @s [{"text":"Done ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" sub-fills)","color":"gray"}]
-                        raw!$
+                        $!raw tellraw @s [{"text":"Done (outline edges) ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" segments)","color":"gray"}] raw!$
                     }
                 }
-            }
-
-            if $_fill_active<@s>$ == 1 {
-                // Compute ends with clamps
-                if $_fill_desc<@s>$ == 0 {
-                    _y_end<@s> = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
-                    if $_y_end<@s>$ > $bwe_max_y<@s>$ { _y_end<@s> = $bwe_max_y<@s>$; }
-                } else {
-                    // For desc: _y_start is higher; compute end below and then normalize start/end for the fill call
-                    _y_end<@s> = $_y_start<@s>$ - $_slice_h<@s>$ + 1;
-                    if $_y_end<@s>$ < $bwe_min_y<@s>$ { _y_end<@s> = $bwe_min_y<@s>$; }
-                    // Ensure _y_start is min and _y_end is max when placing into ctx (MDL swap)
-                    if $_y_start<@s>$ > $_y_end<@s>$ {
-                        _temp<@s> = $_y_start<@s>$;
-                        _y_start<@s> = $_y_end<@s>$;
-                        _y_end<@s> = $_temp<@s>$;
-                    }
-                }
-
-                _xe<@s> = $_xs<@s>$ + $_tile_x<@s>$ - 1;
-                if $_xe<@s>$ > $bwe_max_x<@s>$ { _xe<@s> = $bwe_max_x<@s>$; }
-
-                _ze<@s> = $_zs<@s>$ + $_tile_z<@s>$ - 1;
-                if $_ze<@s>$ > $bwe_max_z<@s>$ { _ze<@s> = $bwe_max_z<@s>$; }
-
-                // Execute one sub-fill
-                exec betterworldedit:_prepare_fill_ctx;
-                exec betterworldedit:_fill_slice_macro with storage betterworldedit:ctx fill;
-
-                _slices<@s> = $_slices<@s>$ + 1;
-                _iz<@s> = $_iz<@s>$ + 1;
             }
         }
     }
 }
 
-// Public macro: set requested block (string) and run chunked fill over current selection
-// Usage examples:
-//   /function betterworldedit:fill_selection {block:"minecraft:oak_planks"}
+// Public entrypoints
+// =============================
+
+// SOLID (renamed from fill_selection). Supports optional mask.
+function betterworldedit:fill {
+    $!raw
+    data remove storage betterworldedit:ctx req
+    data modify storage betterworldedit:ctx req set value {}
+    data modify storage betterworldedit:ctx req.block set value "$(block)"
+    # Optional mask compound may be included by caller; leave as-is in req.mask
+    raw!$
+
+    exec betterworldedit:_parse_mask;
+    _op_mode<@s> = 1;
+    exec betterworldedit:fill_block;
+}
+
+// Back-compat alias
 function betterworldedit:fill_selection {
     $!raw
     data remove storage betterworldedit:ctx req
     data modify storage betterworldedit:ctx req set value {}
     data modify storage betterworldedit:ctx req.block set value "$(block)"
     raw!$
+
+    exec betterworldedit:_parse_mask;
+    _op_mode<@s> = 1;
     exec betterworldedit:fill_block;
 }
+
+// HOLLOW shell (6 faces). Supports mask.
+function betterworldedit:fill_hollow {
+    exec betterworldedit:_ensure_global_config;
+    exec betterworldedit:_ensure_scores_for_player;
+    exec betterworldedit:_compute_bounds;
+
+    $!raw
+    execute unless data storage betterworldedit:ctx req.block run data modify storage betterworldedit:ctx req.block set value "minecraft:stone"
+    raw!$
+
+    exec betterworldedit:_parse_mask;
+
+    if $bwe_volume<@s>$ == 0 {
+        $!raw tellraw @s [{"text":"No selection set!","color":"red"}] raw!$
+    } else {
+        _op_mode<@s> = 2;
+        _fi<@s> = 0;
+        _u_idx<@s> = 0;
+        _v_idx<@s> = 0;
+        _slices<@s> = 0;
+        _fill_active<@s> = 1;
+        $!raw tellraw @s [{"text":"Started hollow fill (faces)","color":"green"}] raw!$
+    }
+}
+
+// OUTLINE edges (12). Supports mask.
+function betterworldedit:fill_outline {
+    exec betterworldedit:_ensure_global_config;
+    exec betterworldedit:_ensure_scores_for_player;
+    exec betterworldedit:_compute_bounds;
+
+    $!raw
+    execute unless data storage betterworldedit:ctx req.block run data modify storage betterworldedit:ctx req.block set value "minecraft:stone"
+    raw!$
+
+    exec betterworldedit:_parse_mask;
+
+    if $bwe_volume<@s>$ == 0 {
+        $!raw tellraw @s [{"text":"No selection set!","color":"red"}] raw!$
+    } else {
+        _op_mode<@s> = 3;
+        _ej<@s> = 0;
+        _seg_idx<@s> = 0;
+        _slices<@s> = 0;
+        _fill_active<@s> = 1;
+        $!raw tellraw @s [{"text":"Started outline fill (edges)","color":"green"}] raw!$
+    }
+}
+
+// =============================
+// Global config
+// =============================
 
 // Set the global max sub-fill size easily via storage argument: {value:NUMBER}
 // Usage:

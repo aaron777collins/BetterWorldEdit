@@ -10,5 +10,3 @@ scoreboard players operation @s temp_22 += @s temp_23
 scoreboard players operation @s _xs = @s temp_22
 execute if score @s _fill_desc matches 0 run function betterworldedit:process_fill_tick__if_8
 execute unless score @s _fill_desc matches 0 run function betterworldedit:process_fill_tick__else_3
-execute if score @s _fill_desc matches 0 run function betterworldedit:process_fill_tick__if_9
-execute unless score @s _fill_desc matches 0 run function betterworldedit:process_fill_tick__else_4

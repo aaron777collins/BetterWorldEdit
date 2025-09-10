@@ -13,3 +13,6 @@ execute store result storage betterworldedit:ctx fill.y2 int 1 run scoreboard pl
 execute store result storage betterworldedit:ctx fill.z2 int 1 run scoreboard players get @s _ze
 # Block id from request
 data modify storage betterworldedit:ctx fill.block set from storage betterworldedit:ctx req.block
+# Optional mask filter string for replace-mode
+execute if data storage betterworldedit:ctx req{filter:""} run data remove storage betterworldedit:ctx req filter
+execute if data storage betterworldedit:ctx req{filter} run data modify storage betterworldedit:ctx fill.filter set from storage betterworldedit:ctx req.filter

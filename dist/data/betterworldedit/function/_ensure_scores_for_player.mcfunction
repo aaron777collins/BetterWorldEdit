@@ -45,6 +45,23 @@ scoreboard players add @s _iz 0
 scoreboard players add @s _fill_active 0
 scoreboard players add @s _fill_desc 0
 
+scoreboard players add @s _op_mode 0
+
+scoreboard players add @s _fi 0
+scoreboard players add @s _u_idx 0
+scoreboard players add @s _v_idx 0
+scoreboard players add @s _tile_u 0
+scoreboard players add @s _tile_v 0
+scoreboard players add @s _us 0
+scoreboard players add @s _ue 0
+scoreboard players add @s _vs 0
+scoreboard players add @s _ve 0
+
+scoreboard players add @s _ej 0
+scoreboard players add @s _seg_idx 0
+
+scoreboard players add @s _mask_mode 0
+
 # Selector stats
 scoreboard players add @s bwe_stat_selector 0
 scoreboard players add @s bwe_stat_selector_2 0
