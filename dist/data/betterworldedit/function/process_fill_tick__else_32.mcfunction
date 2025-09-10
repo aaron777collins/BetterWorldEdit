@@ -3,7 +3,7 @@ scoreboard players operation @s _iy = @s _temp
 scoreboard players operation @s _slice_h = @s bwe_max_fill
 scoreboard players operation @s temp_186 = @s bwe_dim_y
 scoreboard players operation @s temp_186 -= @s _iy
-execute if score @s _slice_h GREATER score @s temp_186 run function betterworldedit:process_fill_tick__if_97
+execute if score @s _slice_h > @s temp_186 run function betterworldedit:process_fill_tick__if_97
 execute if score @s _ej matches 8 run function betterworldedit:process_fill_tick__if_98
 execute unless score @s _ej matches 8 run function betterworldedit:process_fill_tick__else_33
 scoreboard players operation @s temp_188 = @s bwe_min_y
