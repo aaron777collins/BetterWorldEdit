@@ -413,8 +413,8 @@ function betterworldedit:_prepare_fill_ctx {
     # Block id from request
     data modify storage betterworldedit:ctx fill.block set from storage betterworldedit:ctx req.block
     # Optional mask filter string for replace-mode
-    execute if data storage betterworldedit:ctx req{filter:""} run data remove storage betterworldedit:ctx req filter
-    execute if data storage betterworldedit:ctx req{filter} run data modify storage betterworldedit:ctx fill.filter set from storage betterworldedit:ctx req.filter
+    execute if data storage betterworldedit:ctx req{filter:""} run data remove storage betterworldedit:ctx req.filter
+    execute if data storage betterworldedit:ctx req.filter run data modify storage betterworldedit:ctx fill.filter set from storage betterworldedit:ctx req.filter
     raw!$
 }
 
@@ -450,7 +450,7 @@ function betterworldedit:_parse_mask {
     execute if data storage betterworldedit:ctx req{mask:{mode:"replace"}} run scoreboard players set @s _mask_mode 3
 
     # copy filter if present (string like "minecraft:stone" or "#minecraft:leaves")
-    execute if data storage betterworldedit:ctx req{mask:{filter}} run data modify storage betterworldedit:ctx req.filter set from storage betterworldedit:ctx req.mask.filter
+    execute if data storage betterworldedit:ctx req.mask.filter run data modify storage betterworldedit:ctx req.filter set from storage betterworldedit:ctx req.mask.filter
     raw!$
 }
 

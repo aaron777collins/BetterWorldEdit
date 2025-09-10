@@ -12,4 +12,4 @@ execute if data storage betterworldedit:ctx req{mask:{mode:"destroy"}} run score
 execute if data storage betterworldedit:ctx req{mask:{mode:"replace"}} run scoreboard players set @s _mask_mode 3
 
 # copy filter if present (string like "minecraft:stone" or "#minecraft:leaves")
-execute if data storage betterworldedit:ctx req{mask:{filter}} run data modify storage betterworldedit:ctx req.filter set from storage betterworldedit:ctx req.mask.filter
+execute if data storage betterworldedit:ctx req.mask.filter run data modify storage betterworldedit:ctx req.filter set from storage betterworldedit:ctx req.mask.filter
