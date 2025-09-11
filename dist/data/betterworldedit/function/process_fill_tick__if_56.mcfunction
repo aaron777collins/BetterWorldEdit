@@ -1,2 +1,2 @@
 # Function: betterworldedit:process_fill_tick__if_56
-scoreboard players set @s _tile_u 1
+scoreboard players operation @s _ue = @s bwe_max_z

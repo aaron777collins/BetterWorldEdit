@@ -1,11 +1,11 @@
 # Function: betterworldedit:fill_hollow
 
-function betterworldedit:_ensure_global_config
-function betterworldedit:_ensure_scores_for_player
-function betterworldedit:_compute_bounds
 
-execute unless data storage betterworldedit:ctx req.block run data modify storage betterworldedit:ctx req.block set value "minecraft:stone"
+data remove storage betterworldedit:ctx req
+data modify storage betterworldedit:ctx req set value {}
+$data modify storage betterworldedit:ctx req.block set value "$(block)"
+# Optional mask compound may be included by caller; leave as-is in req.mask
 
 function betterworldedit:_parse_mask
-execute if score @s bwe_volume matches 0 run function betterworldedit:fill_hollow__if_1
-execute unless score @s bwe_volume matches 0 run function betterworldedit:fill_hollow__else_1
+scoreboard players set @s _op_mode 2
+function betterworldedit:fill_block_unified

@@ -92,7 +92,9 @@ function betterworldedit:help {
     tellraw @s [{"text":"Example replace-tag: ","color":"gray"},{"text":"mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}","color":"aqua"}]
     tellraw @s [{"text":"/function betterworldedit:give_selector","color":"gold"},{"text":" - get selector tools (pos1 & pos2)","color":"yellow"}]
     tellraw @s [{"text":"/function betterworldedit:set_max_fill ","color":"gold"},{"text":"{value:30000}","color":"aqua"},{"text":" - set max blocks per sub-fill","color":"yellow"}]
-    tellraw @s [{"text":"Global config: ","color":"gray"},{"text":"armor stand tag ","color":"dark_gray"},{"text":"bwe_global_config","color":"aqua"},{"text":" controls max per op.","color":"gray"}]
+    tellraw @s [{"text":"/function betterworldedit:set_topdown_mode ","color":"gold"},{"text":"{mode:0}","color":"aqua"},{"text":" - set top-down fill mode","color":"yellow"}]
+    tellraw @s [{"text":"Top-down modes: ","color":"gray"},{"text":"0=air only","color":"white"},{"text":", ","color":"gray"},{"text":"1=liquids+air","color":"white"},{"text":", ","color":"gray"},{"text":"2=all blocks","color":"white"}]
+    tellraw @s [{"text":"Global config: ","color":"gray"},{"text":"armor stand tag ","color":"dark_gray"},{"text":"bwe_global_config","color":"aqua"},{"text":" controls settings.","color":"gray"}]
     raw!$
 }
 
@@ -162,6 +164,8 @@ function betterworldedit:init {
     scoreboard objectives add bwe_stat_selector_2 dummy
     scoreboard objectives add bwe_stat_prev_1 dummy
     scoreboard objectives add bwe_stat_prev_2 dummy
+
+    scoreboard objectives add bwe_topdown_mode dummy
     raw!$
 }
 
@@ -171,7 +175,7 @@ on_load betterworldedit:init;
 function betterworldedit:_ensure_global_config {
     $!raw
     # Ensure a single invulnerable, no-gravity armor stand exists with config scores
-    execute unless entity @e[type=armor_stand,tag=bwe_global_config,limit=1] run summon armor_stand ~ ~ ~ {NoGravity:1b,Invulnerable:1b,Invisible:1b,Tags:["bwe_global_config"]}
+    execute unless entity @e[type=armor_stand,tag=bwe_global_config,limit=1] run summon armor_stand ~ ~ ~ {NoGravity:1b,Invulnerable:1b,Invisible:1b,Tags:["bwe_global_config"],CustomName:'{"text":"BWE Global Config","color":"aqua"}'}
 
     # Ensure the objective exists for global max fill
     scoreboard objectives add bwe_max_fill dummy
@@ -179,6 +183,33 @@ function betterworldedit:_ensure_global_config {
     # Initialize default if missing
     scoreboard players add @e[type=armor_stand,tag=bwe_global_config] bwe_max_fill 0
     execute unless score @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_max_fill matches 1.. run scoreboard players set @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_max_fill 30000
+
+    # Ensure objective exists for top-down fill mode configuration
+    scoreboard objectives add bwe_topdown_mode dummy
+
+    # Initialize top-down mode: 0=air only (default), 1=liquids+air, 2=all blocks
+    scoreboard players add @e[type=armor_stand,tag=bwe_global_config] bwe_topdown_mode 0
+    raw!$
+}
+
+function betterworldedit:_determine_fill_direction {
+    $!raw
+    # Default to bottom-up (ascending) fill
+    scoreboard players set @s _fill_desc 0
+    
+    # Get the global top-down mode setting
+    execute store result score @s _temp run scoreboard players get @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_topdown_mode
+    
+    # Mode 0: Air only (default behavior)
+    execute if score @s _temp matches 0 if data storage betterworldedit:ctx req{block:"minecraft:air"} run scoreboard players set @s _fill_desc 1
+    
+    # Mode 1: Liquids and air
+    execute if score @s _temp matches 1 if data storage betterworldedit:ctx req{block:"minecraft:air"} run scoreboard players set @s _fill_desc 1
+    execute if score @s _temp matches 1 if data storage betterworldedit:ctx req{block:"minecraft:water"} run scoreboard players set @s _fill_desc 1
+    execute if score @s _temp matches 1 if data storage betterworldedit:ctx req{block:"minecraft:lava"} run scoreboard players set @s _fill_desc 1
+    
+    # Mode 2: All blocks fill top-down
+    execute if score @s _temp matches 2 run scoreboard players set @s _fill_desc 1
     raw!$
 }
 
@@ -454,7 +485,8 @@ function betterworldedit:_parse_mask {
     raw!$
 }
 
-function betterworldedit:fill_block {
+// Unified fill function that handles all three modes (solid, hollow, outline)
+function betterworldedit:fill_block_unified {
     // Ensure global config and player score entries only when starting a fill
     exec betterworldedit:_ensure_global_config;
     exec betterworldedit:_ensure_scores_for_player;
@@ -467,62 +499,128 @@ function betterworldedit:fill_block {
         tellraw @s [{"text":"No selection set!","color":"red"},{"text":" Use ","color":"gray"},{"text":"pos1","color":"gold"},{"text":"/","color":"dark_gray"},{"text":"pos2","color":"gold"},{"text":" first.","color":"gray"}]
         raw!$
     } else {
-        $!raw
-        tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":" (mask:"},{"score":{"name":"@s","objective":"_mask_mode"}},{"text":") ... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":") max per op="},{"score":{"name":"@s","objective":"bwe_max_fill"}},{"text":")"}]
-        raw!$
-
-        // Determine fill direction for solid only: liquids/air -> top-down (desc), else bottom-up (asc)
-        $!raw
-        scoreboard players set @s _fill_desc 0
-        execute if data storage betterworldedit:ctx req{block:"minecraft:air"} run scoreboard players set @s _fill_desc 1
-        raw!$
-
-        // Single fill if within limit (overflow-safe check via chained divisions)
-        _temp<@s> = $bwe_max_fill<@s>$;
-        _temp<@s> = $_temp<@s>$ / $bwe_dim_x<@s>$;
-        _temp<@s> = $_temp<@s>$ / $bwe_dim_y<@s>$;
-        if $_temp<@s>$ >= $bwe_dim_z<@s>$ {
-            if $_fill_desc<@s>$ == 0 {
-                _y_start<@s> = $bwe_min_y<@s>$;
-                _y_end<@s> = $bwe_max_y<@s>$;
-            } else {
-                _y_start<@s> = $bwe_max_y<@s>$;
-                _y_end<@s> = $bwe_min_y<@s>$;
-            }
+        // Different messaging for different modes
+        if $_op_mode<@s>$ == 1 {
             $!raw
-            scoreboard players operation @s _xs = @s bwe_min_x
-            scoreboard players operation @s _xe = @s bwe_max_x
-            scoreboard players operation @s _zs = @s bwe_min_z
-            scoreboard players operation @s _ze = @s bwe_max_z
-            raw!$
-            exec betterworldedit:_do_subfill;
-            $!raw
-            tellraw @s [{"text":"Done","color":"green"},{"text":" (single fill)","color":"gray"}]
+            tellraw @s [{"text":"Filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":" (mask:"},{"score":{"name":"@s","objective":"_mask_mode"}},{"text":") ... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":") max per op="},{"score":{"name":"@s","objective":"bwe_max_fill"}},{"text":")"}]
             raw!$
         } else {
-            // Chunked: precompute tile sizes (overflow-safe)
-            // slice_h = clamp( floor(max_fill / dim_x / dim_z), 1..dim_y )
-            _slice_h<@s> = $bwe_max_fill<@s>$;
-            _slice_h<@s> = $_slice_h<@s>$ / $bwe_dim_x<@s>$;
-            _slice_h<@s> = $_slice_h<@s>$ / $bwe_dim_z<@s>$;
-            if $_slice_h<@s>$ < 1 { _slice_h<@s> = 1; }
-            if $_slice_h<@s>$ > $bwe_dim_y<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$; }
+            if $_op_mode<@s>$ == 2 {
+                $!raw
+                tellraw @s [{"text":"Hollow filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":" (mask:"},{"score":{"name":"@s","objective":"_mask_mode"}},{"text":") ... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":") max per op="},{"score":{"name":"@s","objective":"bwe_max_fill"}},{"text":")"}]
+                raw!$
+            } else {
+                $!raw
+                tellraw @s [{"text":"Outline filling selection with "},{"storage":"betterworldedit:ctx","nbt":"req.block"},{"text":" (mask:"},{"score":{"name":"@s","objective":"_mask_mode"}},{"text":") ... ("},{"score":{"name":"@s","objective":"bwe_dim_x"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_y"}},{"text":"x"},{"score":{"name":"@s","objective":"bwe_dim_z"}},{"text":" = "},{"score":{"name":"@s","objective":"bwe_volume"}},{"text":") max per op="},{"score":{"name":"@s","objective":"bwe_max_fill"}},{"text":")"}]
+                raw!$
+            }
+        }
 
-            // area_limit per slice in _temp
-            _temp<@s> = $bwe_max_fill<@s>$ / $_slice_h<@s>$;
-            if $_temp<@s>$ < 1 { _temp<@s> = 1; }
+        // Determine fill direction for solid fills based on global configuration
+        exec betterworldedit:_determine_fill_direction;
 
-            // tile_x = clamp(floor(area_limit / dim_z), 1..dim_x)
-            _tile_x<@s> = $_temp<@s>$ / $bwe_dim_z<@s>$;
-            if $_tile_x<@s>$ < 1 { _tile_x<@s> = 1; }
-            if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
+        // Initialize mode-specific variables
+        if $_op_mode<@s>$ == 2 {
+            // Hollow mode initialization
+            _fi<@s> = 0;
+            _u_idx<@s> = 0;
+            _v_idx<@s> = 0;
+        } else {
+            if $_op_mode<@s>$ == 3 {
+                // Outline mode initialization  
+                _ej<@s> = 0;
+                _seg_idx<@s> = 0;
+            }
+        }
 
-            // tile_z = clamp(floor(area_limit / tile_x), 1..dim_z)
-            _tile_z<@s> = $_temp<@s>$ / $_tile_x<@s>$;
-            if $_tile_z<@s>$ < 1 { _tile_z<@s> = 1; }
-            if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
+        // Check if single fill is possible (solid fills only)
+        if $_op_mode<@s>$ == 1 {
+            // Single fill if within limit (overflow-safe check via chained divisions)
+            _temp<@s> = $bwe_max_fill<@s>$;
+            _temp<@s> = $_temp<@s>$ / $bwe_dim_x<@s>$;
+            _temp<@s> = $_temp<@s>$ / $bwe_dim_y<@s>$;
+            if $_temp<@s>$ >= $bwe_dim_z<@s>$ {
+                if $_fill_desc<@s>$ == 0 {
+                    _y_start<@s> = $bwe_min_y<@s>$;
+                    _y_end<@s> = $bwe_max_y<@s>$;
+                } else {
+                    _y_start<@s> = $bwe_max_y<@s>$;
+                    _y_end<@s> = $bwe_min_y<@s>$;
+                }
+                $!raw
+                scoreboard players operation @s _xs = @s bwe_min_x
+                scoreboard players operation @s _xe = @s bwe_max_x
+                scoreboard players operation @s _zs = @s bwe_min_z
+                scoreboard players operation @s _ze = @s bwe_max_z
+                raw!$
+                exec betterworldedit:_do_subfill;
+                $!raw
+                tellraw @s [{"text":"Done","color":"green"},{"text":" (single fill)","color":"gray"}]
+                raw!$
+            } else {
+                // Solid fill needs chunked processing
+                _slice_h<@s> = $bwe_max_fill<@s>$;
+                _slice_h<@s> = $_slice_h<@s>$ / $bwe_dim_x<@s>$;
+                _slice_h<@s> = $_slice_h<@s>$ / $bwe_dim_z<@s>$;
+                if $_slice_h<@s>$ < 1 { _slice_h<@s> = 1; }
+                if $_slice_h<@s>$ > $bwe_dim_y<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$; }
 
-            // Initialize indices and activate the per-tick processor
+                // area_limit per slice in _temp
+                _temp<@s> = $bwe_max_fill<@s>$ / $_slice_h<@s>$;
+                if $_temp<@s>$ < 1 { _temp<@s> = 1; }
+
+                // tile_x = clamp(floor(area_limit / dim_z), 1..dim_x)
+                _tile_x<@s> = $_temp<@s>$ / $bwe_dim_z<@s>$;
+                if $_tile_x<@s>$ < 1 { _tile_x<@s> = 1; }
+                if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
+
+                // tile_z = clamp(floor(area_limit / tile_x), 1..dim_z)
+                _tile_z<@s> = $_temp<@s>$ / $_tile_x<@s>$;
+                if $_tile_z<@s>$ < 1 { _tile_z<@s> = 1; }
+                if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
+
+                // Initialize indices and activate the per-tick processor
+                _ix<@s> = 0;
+                _iy<@s> = 0;
+                _iz<@s> = 0;
+                _slices<@s> = 0;
+                _fill_active<@s> = 1;
+                $!raw
+                tellraw @s [{"text":"Started chunked fill","color":"green"},{"text":"; ","color":"dark_gray"},{"text":"running across ticks...","color":"gray"}]
+                raw!$
+            }
+        } else {
+            // Hollow and outline modes always use chunked processing
+            // Compute tile sizes for hollow and outline modes
+            if $_op_mode<@s>$ == 2 {
+                // Hollow mode: optimize for 2D face tiling
+                // For faces parallel to XZ plane: tile_u based on X, tile_v based on Z
+                _tile_x<@s> = $bwe_max_fill<@s>$ / $bwe_dim_z<@s>$;  // U tiles for XZ faces
+                if $_tile_x<@s>$ < 1 { _tile_x<@s> = 1; }
+                if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
+                
+                _tile_z<@s> = $bwe_max_fill<@s>$ / $_tile_x<@s>$;    // V tiles for XZ faces
+                if $_tile_z<@s>$ < 1 { _tile_z<@s> = 1; }
+                if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
+                
+                _slice_h<@s> = 1;  // Single layer at a time for faces
+            } else {
+                // Outline mode: optimize for edge segments
+                // Use smaller chunks for better distribution along edges
+                _temp<@s> = $bwe_max_fill<@s>$ / 4;  // Quarter max_fill for edge segments
+                if $_temp<@s>$ < 1 { _temp<@s> = 1; }
+                
+                _tile_x<@s> = $_temp<@s>$;
+                _tile_z<@s> = $_temp<@s>$;
+                _slice_h<@s> = $_temp<@s>$;
+                
+                // Clamp to dimension limits
+                if $_tile_x<@s>$ > $bwe_dim_x<@s>$ { _tile_x<@s> = $bwe_dim_x<@s>$; }
+                if $_tile_z<@s>$ > $bwe_dim_z<@s>$ { _tile_z<@s> = $bwe_dim_z<@s>$; }
+                if $_slice_h<@s>$ > $bwe_dim_y<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$; }
+            }
+
+            // Initialize indices and activate the per-tick processor for hollow/outline
             _ix<@s> = 0;
             _iy<@s> = 0;
             _iz<@s> = 0;
@@ -533,6 +631,12 @@ function betterworldedit:fill_block {
             raw!$
         }
     }
+}
+
+// Legacy function for backward compatibility
+function betterworldedit:fill_block {
+    _op_mode<@s> = 1;
+    exec betterworldedit:fill_block_unified;
 }
 
 function betterworldedit:process_fill_tick {
@@ -668,12 +772,9 @@ function betterworldedit:process_fill_tick {
 
                 // Face 0: bottom Ymin (u=X, v=Z, y=bwe_min_y)
                 if $_fi<@s>$ == 0 {
-                    _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_z<@s>$;
-                    if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
-                    if $_tile_u<@s>$ > $bwe_dim_x<@s>$ { _tile_u<@s> = $bwe_dim_x<@s>$; }
-                    _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
-                    if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
-                    if $_tile_v<@s>$ > $bwe_dim_z<@s>$ { _tile_v<@s> = $bwe_dim_z<@s>$; }
+                    // Use pre-calculated tile sizes from initialization
+                    _tile_u<@s> = $_tile_x<@s>$;  // U dimension maps to X
+                    _tile_v<@s> = $_tile_z<@s>$;  // V dimension maps to Z
 
                     _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
                     _vs<@s> = $bwe_min_z<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
@@ -708,12 +809,9 @@ function betterworldedit:process_fill_tick {
                 else {
                     // Face 1: top Ymax (u=X, v=Z, y=bwe_max_y)
                     if $_fi<@s>$ == 1 {
-                        _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_z<@s>$;
-                        if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
-                        if $_tile_u<@s>$ > $bwe_dim_x<@s>$ { _tile_u<@s> = $bwe_dim_x<@s>$; }
-                        _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
-                        if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
-                        if $_tile_v<@s>$ > $bwe_dim_z<@s>$ { _tile_v<@s> = $bwe_dim_z<@s>$; }
+                        // Use pre-calculated tile sizes from initialization
+                        _tile_u<@s> = $_tile_x<@s>$;  // U dimension maps to X
+                        _tile_v<@s> = $_tile_z<@s>$;  // V dimension maps to Z
 
                         _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
                         _vs<@s> = $bwe_min_z<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
@@ -748,12 +846,9 @@ function betterworldedit:process_fill_tick {
                     else {
                         // Face 2: north Zmin (u=X, v=Y, z=bwe_min_z)
                         if $_fi<@s>$ == 2 {
-                            _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_y<@s>$;
-                            if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
-                            if $_tile_u<@s>$ > $bwe_dim_x<@s>$ { _tile_u<@s> = $bwe_dim_x<@s>$; }
-                            _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
-                            if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
-                            if $_tile_v<@s>$ > $bwe_dim_y<@s>$ { _tile_v<@s> = $bwe_dim_y<@s>$; }
+                            // Use pre-calculated tile sizes from initialization
+                            _tile_u<@s> = $_tile_x<@s>$;  // U dimension maps to X
+                            _tile_v<@s> = $_slice_h<@s>$; // V dimension maps to Y (use slice_h)
 
                             _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
                             _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
@@ -788,12 +883,9 @@ function betterworldedit:process_fill_tick {
                         else {
                             // Face 3: south Zmax (u=X, v=Y, z=bwe_max_z)
                             if $_fi<@s>$ == 3 {
-                                _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_y<@s>$;
-                                if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
-                                if $_tile_u<@s>$ > $bwe_dim_x<@s>$ { _tile_u<@s> = $bwe_dim_x<@s>$; }
-                                _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
-                                if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
-                                if $_tile_v<@s>$ > $bwe_dim_y<@s>$ { _tile_v<@s> = $bwe_dim_y<@s>$; }
+                                // Use pre-calculated tile sizes from initialization
+                                _tile_u<@s> = $_tile_x<@s>$;  // U dimension maps to X
+                                _tile_v<@s> = $_slice_h<@s>$; // V dimension maps to Y (use slice_h)
 
                                 _us<@s> = $bwe_min_x<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
                                 _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
@@ -828,12 +920,9 @@ function betterworldedit:process_fill_tick {
                             else {
                                 // Face 4: west Xmin (u=Z, v=Y, x=bwe_min_x)
                                 if $_fi<@s>$ == 4 {
-                                    _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_y<@s>$;
-                                    if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
-                                    if $_tile_u<@s>$ > $bwe_dim_z<@s>$ { _tile_u<@s> = $bwe_dim_z<@s>$; }
-                                    _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
-                                    if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
-                                    if $_tile_v<@s>$ > $bwe_dim_y<@s>$ { _tile_v<@s> = $bwe_dim_y<@s>$; }
+                                    // Use pre-calculated tile sizes from initialization
+                                    _tile_u<@s> = $_tile_z<@s>$;  // U dimension maps to Z
+                                    _tile_v<@s> = $_slice_h<@s>$; // V dimension maps to Y (use slice_h)
 
                                     _us<@s> = $bwe_min_z<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
                                     _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
@@ -868,12 +957,9 @@ function betterworldedit:process_fill_tick {
                                 else {
                                     // Face 5: east Xmax (u=Z, v=Y, x=bwe_max_x)
                                     if $_fi<@s>$ == 5 {
-                                        _tile_u<@s> = $bwe_max_fill<@s>$ / $bwe_dim_y<@s>$;
-                                        if $_tile_u<@s>$ < 1 { _tile_u<@s> = 1; }
-                                        if $_tile_u<@s>$ > $bwe_dim_z<@s>$ { _tile_u<@s> = $bwe_dim_z<@s>$; }
-                                        _tile_v<@s> = $bwe_max_fill<@s>$ / $_tile_u<@s>$;
-                                        if $_tile_v<@s>$ < 1 { _tile_v<@s> = 1; }
-                                        if $_tile_v<@s>$ > $bwe_dim_y<@s>$ { _tile_v<@s> = $bwe_dim_y<@s>$; }
+                                        // Use pre-calculated tile sizes from initialization
+                                        _tile_u<@s> = $_tile_z<@s>$;  // U dimension maps to Z
+                                        _tile_v<@s> = $_slice_h<@s>$; // V dimension maps to Y (use slice_h)
 
                                         _us<@s> = $bwe_min_z<@s>$ + ($_u_idx<@s>$ * $_tile_u<@s>$);
                                         _vs<@s> = $bwe_min_y<@s>$ + ($_v_idx<@s>$ * $_tile_v<@s>$);
@@ -923,12 +1009,11 @@ function betterworldedit:process_fill_tick {
 
                     // X edges (0..3)
                     if $_ej<@s>$ <= 3 {
-                        _temp<@s> = $_seg_idx<@s>$ * $bwe_max_fill<@s>$; // offset along X
-                        if $_temp<@s>$ >= $bwe_dim_x<@s>$ {
+                        _ix<@s> = $_seg_idx<@s>$ * $_tile_x<@s>$; // offset along X using tile_x
+                        if $_ix<@s>$ >= $bwe_dim_x<@s>$ {
                             _seg_idx<@s> = 0; _ej<@s> = $_ej<@s>$ + 1;
                         } else {
-                            _ix<@s> = $_temp<@s>$;
-                            _slice_h<@s> = $bwe_max_fill<@s>$;
+                            _slice_h<@s> = $_tile_x<@s>$;
                             if $_slice_h<@s>$ > $bwe_dim_x<@s>$ - $_ix<@s>$ { _slice_h<@s> = $bwe_dim_x<@s>$ - $_ix<@s>$; }
 
                             // 0: y=min,z=min | 1: y=min,z=max | 2: y=max,z=min | 3: y=max,z=max
@@ -953,12 +1038,11 @@ function betterworldedit:process_fill_tick {
                     else {
                         // Z edges (4..7)
                         if $_ej<@s>$ <= 7 {
-                            _temp<@s> = $_seg_idx<@s>$ * $bwe_max_fill<@s>$; // offset along Z
-                            if $_temp<@s>$ >= $bwe_dim_z<@s>$ {
+                            _iz<@s> = $_seg_idx<@s>$ * $_tile_z<@s>$; // offset along Z using tile_z
+                            if $_iz<@s>$ >= $bwe_dim_z<@s>$ {
                                 _seg_idx<@s> = 0; _ej<@s> = $_ej<@s>$ + 1;
                             } else {
-                                _iz<@s> = $_temp<@s>$;
-                                _slice_h<@s> = $bwe_max_fill<@s>$;
+                                _slice_h<@s> = $_tile_z<@s>$;
                                 if $_slice_h<@s>$ > $bwe_dim_z<@s>$ - $_iz<@s>$ { _slice_h<@s> = $bwe_dim_z<@s>$ - $_iz<@s>$; }
 
                                 // 4: y=min,x=min | 5: y=min,x=max | 6: y=max,x=min | 7: y=max,x=max
@@ -982,13 +1066,12 @@ function betterworldedit:process_fill_tick {
                         }
                         else {
                             // Y edges (8..11)
-                            _temp<@s> = $_seg_idx<@s>$ * $bwe_max_fill<@s>$; // offset along Y
-                            if $_temp<@s>$ >= $bwe_dim_y<@s>$ {
+                            _iy<@s> = $_seg_idx<@s>$ * $_slice_h<@s>$; // offset along Y using slice_h
+                            if $_iy<@s>$ >= $bwe_dim_y<@s>$ {
                                 _seg_idx<@s> = 0; _ej<@s> = $_ej<@s>$ + 1;
                             } else {
-                                _iy<@s> = $_temp<@s>$;
-                                _slice_h<@s> = $bwe_max_fill<@s>$;
-                                if $_slice_h<@s>$ > $bwe_dim_y<@s>$ - $_iy<@s>$ { _slice_h<@s> = $bwe_dim_y<@s>$ - $_iy<@s>$; }
+                                _temp<@s> = $_slice_h<@s>$;
+                                if $_temp<@s>$ > $bwe_dim_y<@s>$ - $_iy<@s>$ { _temp<@s> = $bwe_dim_y<@s>$ - $_iy<@s>$; }
 
                                 // 8: x=min,z=min | 9: x=max,z=min | 10: x=min,z=max | 11: x=max,z=max
                                 if $_ej<@s>$ == 8 { _xs<@s> = $bwe_min_x<@s>$; _xe<@s> = $bwe_min_x<@s>$; _zs<@s> = $bwe_min_z<@s>$; _ze<@s> = $bwe_min_z<@s>$; }
@@ -1001,7 +1084,7 @@ function betterworldedit:process_fill_tick {
                                 }
 
                                 _y_start<@s> = $bwe_min_y<@s>$ + $_iy<@s>$;
-                                _y_end<@s>   = $_y_start<@s>$ + $_slice_h<@s>$ - 1;
+                                _y_end<@s>   = $_y_start<@s>$ + $_temp<@s>$ - 1;
 
                                 exec betterworldedit:_do_subfill;
 
@@ -1054,51 +1137,30 @@ function betterworldedit:fill_selection {
 
 // HOLLOW shell (6 faces). Supports mask.
 function betterworldedit:fill_hollow {
-    exec betterworldedit:_ensure_global_config;
-    exec betterworldedit:_ensure_scores_for_player;
-    exec betterworldedit:_compute_bounds;
-
     $!raw
-    execute unless data storage betterworldedit:ctx req.block run data modify storage betterworldedit:ctx req.block set value "minecraft:stone"
+    data remove storage betterworldedit:ctx req
+    data modify storage betterworldedit:ctx req set value {}
+    data modify storage betterworldedit:ctx req.block set value "$(block)"
+    # Optional mask compound may be included by caller; leave as-is in req.mask
     raw!$
 
     exec betterworldedit:_parse_mask;
-
-    if $bwe_volume<@s>$ == 0 {
-        $!raw tellraw @s [{"text":"No selection set!","color":"red"}] raw!$
-    } else {
-        _op_mode<@s> = 2;
-        _fi<@s> = 0;
-        _u_idx<@s> = 0;
-        _v_idx<@s> = 0;
-        _slices<@s> = 0;
-        _fill_active<@s> = 1;
-        $!raw tellraw @s [{"text":"Started hollow fill (faces)","color":"green"}] raw!$
-    }
+    _op_mode<@s> = 2;
+    exec betterworldedit:fill_block_unified;
 }
 
 // OUTLINE edges (12). Supports mask.
 function betterworldedit:fill_outline {
-    exec betterworldedit:_ensure_global_config;
-    exec betterworldedit:_ensure_scores_for_player;
-    exec betterworldedit:_compute_bounds;
-
     $!raw
-    execute unless data storage betterworldedit:ctx req.block run data modify storage betterworldedit:ctx req.block set value "minecraft:stone"
+    data remove storage betterworldedit:ctx req
+    data modify storage betterworldedit:ctx req set value {}
+    data modify storage betterworldedit:ctx req.block set value "$(block)"
+    # Optional mask compound may be included by caller; leave as-is in req.mask
     raw!$
 
     exec betterworldedit:_parse_mask;
-
-    if $bwe_volume<@s>$ == 0 {
-        $!raw tellraw @s [{"text":"No selection set!","color":"red"}] raw!$
-    } else {
-        _op_mode<@s> = 3;
-        _ej<@s> = 0;
-        _seg_idx<@s> = 0;
-        _slices<@s> = 0;
-        _fill_active<@s> = 1;
-        $!raw tellraw @s [{"text":"Started outline fill (edges)","color":"green"}] raw!$
-    }
+    _op_mode<@s> = 3;
+    exec betterworldedit:fill_block_unified;
 }
 
 // =============================
@@ -1113,6 +1175,22 @@ function betterworldedit:set_max_fill {
     $!raw
     scoreboard players set @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_max_fill $(value)
     tellraw @s [{"text":"Global max per sub-fill set to ","color":"gray"},{"score":{"name":"@e[type=armor_stand,tag=bwe_global_config,limit=1]","objective":"bwe_max_fill"},"color":"yellow"}]
+    raw!$
+}
+
+// Set the global top-down fill mode via storage argument: {mode:NUMBER}
+// Usage:
+//   /function betterworldedit:set_topdown_mode {mode:0}  # Air only (default)
+//   /function betterworldedit:set_topdown_mode {mode:1}  # Liquids + air
+//   /function betterworldedit:set_topdown_mode {mode:2}  # All blocks
+function betterworldedit:set_topdown_mode {
+    exec betterworldedit:_ensure_global_config;
+    $!raw
+    scoreboard players set @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_topdown_mode $(mode)
+    execute if score @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_topdown_mode matches 0 run tellraw @s [{"text":"Top-down fill mode: ","color":"gray"},{"text":"Air only","color":"aqua"}]
+    execute if score @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_topdown_mode matches 1 run tellraw @s [{"text":"Top-down fill mode: ","color":"gray"},{"text":"Liquids + Air","color":"aqua"}]
+    execute if score @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_topdown_mode matches 2 run tellraw @s [{"text":"Top-down fill mode: ","color":"gray"},{"text":"All blocks","color":"aqua"}]
+    execute unless score @e[type=armor_stand,tag=bwe_global_config,limit=1] bwe_topdown_mode matches 0..2 run tellraw @s [{"text":"Invalid mode! Use 0 (air only), 1 (liquids+air), or 2 (all blocks)","color":"red"}]
     raw!$
 }
 

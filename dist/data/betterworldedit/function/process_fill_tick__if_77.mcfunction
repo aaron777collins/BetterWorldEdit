@@ -1,2 +1,3 @@
 # Function: betterworldedit:process_fill_tick__if_77
-scoreboard players operation @s _tile_v = @s bwe_dim_y
+scoreboard players set @s _fill_active 0
+tellraw @s [{"text":"Done (outline edges) ","color":"green"},{"text":"(","color":"dark_gray"},{"score":{"name":"@s","objective":"_slices"},"color":"yellow"},{"text":" segments)","color":"gray"}]

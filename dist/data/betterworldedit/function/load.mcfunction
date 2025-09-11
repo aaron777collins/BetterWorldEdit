@@ -236,15 +236,6 @@ scoreboard objectives add temp_180 dummy "temp_180"
 scoreboard objectives add temp_181 dummy "temp_181"
 scoreboard objectives add temp_182 dummy "temp_182"
 scoreboard objectives add temp_183 dummy "temp_183"
-scoreboard objectives add temp_184 dummy "temp_184"
-scoreboard objectives add temp_185 dummy "temp_185"
-scoreboard objectives add temp_186 dummy "temp_186"
-scoreboard objectives add temp_187 dummy "temp_187"
-scoreboard objectives add temp_188 dummy "temp_188"
-scoreboard objectives add temp_189 dummy "temp_189"
-scoreboard objectives add temp_190 dummy "temp_190"
-scoreboard objectives add temp_191 dummy "temp_191"
-scoreboard objectives add temp_192 dummy "temp_192"
 scoreboard players set @a bwe_pos1_x 0
 scoreboard players set @a bwe_pos1_y 0
 scoreboard players set @a bwe_pos1_z 0

@@ -1,2 +1,4 @@
 # Function: betterworldedit:process_fill_tick__if_59
-scoreboard players operation @s _tile_v = @s bwe_dim_y
+execute if score @s _ej matches ..3 run function betterworldedit:process_fill_tick__if_60
+execute unless score @s _ej matches ..3 run function betterworldedit:process_fill_tick__else_26
+execute if score @s _ej matches 12.. run function betterworldedit:process_fill_tick__if_77
