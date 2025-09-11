@@ -51,8 +51,8 @@ scoreboard players add @s _iz 0
 scoreboard players add @s _fill_active 0
 scoreboard players add @s _fill_desc 0
 
-# Don't reset _op_mode if it's already set (preserve caller's value)
-# scoreboard players add @s _op_mode 0
+# [Debug Note]Don't reset _op_mode if it's already set (preserve caller's value)
+# scoreboard players add @s _op_mode 0 
 
 scoreboard players add @s _fi 0
 scoreboard players add @s _u_idx 0
