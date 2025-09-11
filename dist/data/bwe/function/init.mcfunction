@@ -66,3 +66,4 @@ scoreboard objectives add bwe_stat_prev_1 dummy
 scoreboard objectives add bwe_stat_prev_2 dummy
 
 scoreboard objectives add bwe_topdown_mode dummy
+scoreboard objectives add bwe_temp dummy

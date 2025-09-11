@@ -89,8 +89,11 @@ function bwe:help {
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Fill Commands:","bold":true,"color":"green"}]
     tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\"}","color":"aqua"},{"text":" - fill solid","color":"yellow"}]
-    tellraw @s [{"text":"/function bwe:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:stone\"}","color":"aqua"},{"text":" - shell only (faces)","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:fill_mask ","color":"gold"},{"text":"{block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"aqua"},{"text":" - fill solid with mask","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:glass\"}","color":"aqua"},{"text":" - shell only (faces)","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow_mask ","color":"gold"},{"text":"{block:\"minecraft:glass\",mask:{mode:\"destroy\"}}","color":"aqua"},{"text":" - hollow with mask","color":"yellow"}]
     tellraw @s [{"text":"/function bwe:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:glowstone\"}","color":"aqua"},{"text":" - edges & corners only","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:fill_outline_mask ","color":"gold"},{"text":"{block:\"minecraft:glowstone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"aqua"},{"text":" - outline with mask","color":"yellow"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Detailed Help:","bold":true,"color":"green"}]
     tellraw @s [{"text":"/function bwe:help_fill","color":"gold"},{"text":" - solid fill examples","color":"yellow"}]
@@ -118,15 +121,18 @@ function bwe:help_fill {
     tellraw @s [{"text":"Solid Fill Help","bold":true,"color":"aqua"}]
     tellraw @s [{"text":"Fills the entire selection volume with blocks.","color":"gray"}]
     tellraw @s [{"text":"","color":"gray"}]
-    tellraw @s [{"text":"Basic Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Basic Usage (no mask):","bold":true,"color":"green"}]
     tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:stone\"}","color":"aqua"}]
+    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:dirt\"}","color":"aqua"}]
+    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:air\"}","color":"aqua"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"With Mask Examples:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"Replace all: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:dirt\"}","color":"white"}]
-    tellraw @s [{"text":"Only air: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"white"}]
-    tellraw @s [{"text":"Drop items: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"white"}]
-    tellraw @s [{"text":"Replace stone: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
-    tellraw @s [{"text":"Replace leaves: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\",mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}}","color":"white"}]
+    tellraw @s [{"text":"Only fill air: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Drop items: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"Replace stone: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"Replace leaves: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:air\",mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}}","color":"white"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Note: Use ","color":"gray"},{"text":"bwe:fill","color":"aqua"},{"text":" for basic fills, ","color":"gray"},{"text":"bwe:fill_mask","color":"aqua"},{"text":" for advanced filtering.","color":"gray"}]
     raw!$
 }
 
@@ -136,8 +142,10 @@ function bwe:help_hollow {
     tellraw @s [{"text":"Fills only the outer faces (shell) of the selection.","color":"gray"}]
     tellraw @s [{"text":"Creates a hollow box - interior remains unchanged.","color":"gray"}]
     tellraw @s [{"text":"","color":"gray"}]
-    tellraw @s [{"text":"Basic Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Basic Usage (no mask):","bold":true,"color":"green"}]
     tellraw @s [{"text":"/function bwe:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:glass\"}","color":"aqua"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:stone\"}","color":"aqua"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\"}","color":"aqua"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Perfect for:","bold":true,"color":"green"}]
     tellraw @s [{"text":"- Building walls/rooms","color":"yellow"}]
@@ -145,9 +153,11 @@ function bwe:help_hollow {
     tellraw @s [{"text":"- Glass domes/boxes","color":"yellow"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"With Mask Examples:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"Glass shell: ","color":"gray"},{"text":"/function bwe:fill_hollow {block:\"minecraft:glass\"}","color":"white"}]
-    tellraw @s [{"text":"Only replace stone faces: ","color":"gray"},{"text":"/function bwe:fill_hollow {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
-    tellraw @s [{"text":"Keep existing blocks: ","color":"gray"},{"text":"/function bwe:fill_hollow {block:\"minecraft:oak_planks\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Only replace stone faces: ","color":"gray"},{"text":"/function bwe:fill_hollow_mask {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"Keep existing blocks: ","color":"gray"},{"text":"/function bwe:fill_hollow_mask {block:\"minecraft:oak_planks\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Drop items when replacing: ","color":"gray"},{"text":"/function bwe:fill_hollow_mask {block:\"minecraft:glass\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Note: Use ","color":"gray"},{"text":"bwe:fill_hollow","color":"aqua"},{"text":" for basic shells, ","color":"gray"},{"text":"bwe:fill_hollow_mask","color":"aqua"},{"text":" for advanced filtering.","color":"gray"}]
     raw!$
 }
 
@@ -157,8 +167,10 @@ function bwe:help_outline {
     tellraw @s [{"text":"Fills only the edges and corners of the selection.","color":"gray"}]
     tellraw @s [{"text":"Creates a wireframe - faces and interior remain unchanged.","color":"gray"}]
     tellraw @s [{"text":"","color":"gray"}]
-    tellraw @s [{"text":"Basic Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Basic Usage (no mask):","bold":true,"color":"green"}]
     tellraw @s [{"text":"/function bwe:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:glowstone\"}","color":"aqua"}]
+    tellraw @s [{"text":"/function bwe:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:gold_block\"}","color":"aqua"}]
+    tellraw @s [{"text":"/function bwe:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:redstone_block\"}","color":"aqua"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Perfect for:","bold":true,"color":"green"}]
     tellraw @s [{"text":"- Marking boundaries","color":"yellow"}]
@@ -167,9 +179,11 @@ function bwe:help_outline {
     tellraw @s [{"text":"- Debug visualization","color":"yellow"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"With Mask Examples:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"Glowstone frame: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:glowstone\"}","color":"white"}]
-    tellraw @s [{"text":"Replace stone edges: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:gold_block\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
-    tellraw @s [{"text":"Only fill air edges: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:redstone_block\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Replace stone edges: ","color":"gray"},{"text":"/function bwe:fill_outline_mask {block:\"minecraft:gold_block\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"Only fill air edges: ","color":"gray"},{"text":"/function bwe:fill_outline_mask {block:\"minecraft:redstone_block\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Drop items when replacing: ","color":"gray"},{"text":"/function bwe:fill_outline_mask {block:\"minecraft:glowstone\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Note: Use ","color":"gray"},{"text":"bwe:fill_outline","color":"aqua"},{"text":" for basic wireframes, ","color":"gray"},{"text":"bwe:fill_outline_mask","color":"aqua"},{"text":" for advanced filtering.","color":"gray"}]
     raw!$
 }
 
@@ -177,11 +191,13 @@ function bwe:help_mask_all {
     $!raw
     tellraw @s [{"text":"Mask: All (Default)","bold":true,"color":"aqua"}]
     tellraw @s [{"text":"Replaces ALL blocks in the selection with the new block.","color":"gray"}]
-    tellraw @s [{"text":"This is the default behavior when no mask is specified.","color":"gray"}]
+    tellraw @s [{"text":"This is the default behavior for basic fill commands.","color":"gray"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"Explicit: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\",mask:{mode:\"all\"}}","color":"white"}]
-    tellraw @s [{"text":"Implicit: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\"}","color":"white"}]
+    tellraw @s [{"text":"Basic commands (no mask needed):","color":"gray"}]
+    tellraw @s [{"text":"/function bwe:fill {block:\"minecraft:stone\"}","color":"white"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow {block:\"minecraft:glass\"}","color":"white"}]
+    tellraw @s [{"text":"/function bwe:fill_outline {block:\"minecraft:glowstone\"}","color":"white"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Behavior:","bold":true,"color":"green"}]
     tellraw @s [{"text":"- Replaces stone, dirt, air, water, etc.","color":"yellow"}]
@@ -191,7 +207,7 @@ function bwe:help_mask_all {
     tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
     tellraw @s [{"text":"Fill with stone: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\"}","color":"white"}]
     tellraw @s [{"text":"Clear to air: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\"}","color":"white"}]
-    tellraw @s [{"text":"Fill with water: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:water\"}","color":"white"}]
+    tellraw @s [{"text":"Glass shell: ","color":"gray"},{"text":"/function bwe:fill_hollow {block:\"minecraft:glass\"}","color":"white"}]
     raw!$
 }
 
@@ -202,7 +218,10 @@ function bwe:help_mask_keep {
     tellraw @s [{"text":"Perfect for adding blocks without destroying existing builds.","color":"gray"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"aqua"}]
+    tellraw @s [{"text":"Use the _mask variants:","color":"gray"}]
+    tellraw @s [{"text":"/function bwe:fill_mask {block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow_mask {block:\"minecraft:glass\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"/function bwe:fill_outline_mask {block:\"minecraft:glowstone\",mask:{mode:\"keep\"}}","color":"white"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Behavior:","bold":true,"color":"green"}]
     tellraw @s [{"text":"- Only replaces air blocks","color":"yellow"}]
@@ -215,9 +234,9 @@ function bwe:help_mask_keep {
     tellraw @s [{"text":"- Creating platforms in air","color":"yellow"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"Light up caves: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:glowstone\",mask:{mode:\"keep\"}}","color":"white"}]
-    tellraw @s [{"text":"Fill air with glass: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:glass\",mask:{mode:\"keep\"}}","color":"white"}]
-    tellraw @s [{"text":"Stone platform: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Light up caves: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:glowstone\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Fill air with glass: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:glass\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Stone platform: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"white"}]
     raw!$
 }
 
@@ -228,7 +247,10 @@ function bwe:help_mask_destroy {
     tellraw @s [{"text":"Like breaking every block individually, but much faster!","color":"gray"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"aqua"}]
+    tellraw @s [{"text":"Use the _mask variants:","color":"gray"}]
+    tellraw @s [{"text":"/function bwe:fill_mask {block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow_mask {block:\"minecraft:glass\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"/function bwe:fill_outline_mask {block:\"minecraft:glowstone\",mask:{mode:\"destroy\"}}","color":"white"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Behavior:","bold":true,"color":"green"}]
     tellraw @s [{"text":"- Replaces all blocks","color":"yellow"}]
@@ -241,8 +263,8 @@ function bwe:help_mask_destroy {
     tellraw @s [{"text":"- Clearing terrain but keeping resources","color":"yellow"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"Harvest stone: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"white"}]
-    tellraw @s [{"text":"Collect and replace: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:dirt\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"Harvest stone: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"Collect and replace: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:dirt\",mask:{mode:\"destroy\"}}","color":"white"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"WARNING: Can create lots of item entities!","color":"red"}]
     raw!$
@@ -255,7 +277,10 @@ function bwe:help_mask_replace {
     tellraw @s [{"text":"Most precise control - target exactly what you want to change.","color":"gray"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"aqua"}]
+    tellraw @s [{"text":"Use the _mask variants:","color":"gray"}]
+    tellraw @s [{"text":"/function bwe:fill_mask {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow_mask {block:\"minecraft:glass\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"/function bwe:fill_outline_mask {block:\"minecraft:glowstone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Filter Types:","bold":true,"color":"green"}]
     tellraw @s [{"text":"Single block: ","color":"gray"},{"text":"\"minecraft:stone\"","color":"white"}]
@@ -269,9 +294,9 @@ function bwe:help_mask_replace {
     tellraw @s [{"text":"#minecraft:stone_bricks","color":"aqua"},{"text":" - all stone brick variants","color":"gray"}]
     tellraw @s [{"text":"","color":"gray"}]
     tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
-    tellraw @s [{"text":"Stone to cobble: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
-    tellraw @s [{"text":"Clear all leaves: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\",mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}}","color":"white"}]
-    tellraw @s [{"text":"Upgrade planks: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:dark_oak_planks\",mask:{mode:\"replace\",filter:\"#minecraft:planks\"}}","color":"white"}]
+    tellraw @s [{"text":"Stone to cobble: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"Clear all leaves: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:air\",mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}}","color":"white"}]
+    tellraw @s [{"text":"Upgrade planks: ","color":"gray"},{"text":"/function bwe:fill_mask {block:\"minecraft:dark_oak_planks\",mask:{mode:\"replace\",filter:\"#minecraft:planks\"}}","color":"white"}]
     raw!$
 }
 
@@ -343,6 +368,7 @@ function bwe:init {
     scoreboard objectives add bwe_stat_prev_2 dummy
 
     scoreboard objectives add bwe_topdown_mode dummy
+    scoreboard objectives add bwe_temp dummy
     raw!$
 }
 
@@ -1332,19 +1358,35 @@ function bwe:process_fill_tick {
 // Public entrypoints
 // =============================
 
-// SOLID (renamed from fill_selection). Supports optional mask.
+// Internal implementation for solid fills
+function bwe:_do_fill_solid {
+    exec bwe:_parse_mask;
+    _op_mode<@s> = 1;
+    exec bwe:fill_block;
+}
+
+// SOLID fill - no mask required
 function bwe:fill {
     $!raw
     data remove storage bwe:ctx req
     data modify storage bwe:ctx req set value {}
     data modify storage bwe:ctx req.block set value "$(block)"
-    # Copy mask compound if provided - use macro to handle optional parameter
-    $data modify storage bwe:ctx req.mask set value $(mask)
+    # No mask - will default to mode 0 (all)
     raw!$
 
-    exec bwe:_parse_mask;
-    _op_mode<@s> = 1;
-    exec bwe:fill_block;
+    exec bwe:_do_fill_solid;
+}
+
+// SOLID fill with mask
+function bwe:fill_mask {
+    $!raw
+    data remove storage bwe:ctx req
+    data modify storage bwe:ctx req set value {}
+    data modify storage bwe:ctx req.block set value "$(block)"
+    data modify storage bwe:ctx req.mask set value $(mask)
+    raw!$
+
+    exec bwe:_do_fill_solid;
 }
 
 // Back-compat alias
@@ -1353,43 +1395,74 @@ function bwe:fill_selection {
     data remove storage bwe:ctx req
     data modify storage bwe:ctx req set value {}
     data modify storage bwe:ctx req.block set value "$(block)"
-    # Copy mask compound if provided - use macro to handle optional parameter
-    $data modify storage bwe:ctx req.mask set value $(mask)
+    # No mask - will default to mode 0 (all)
     raw!$
 
-    exec bwe:_parse_mask;
-    _op_mode<@s> = 1;
-    exec bwe:fill_block;
+    exec bwe:_do_fill_solid;
 }
 
-// HOLLOW shell (6 faces). Supports mask.
-function bwe:fill_hollow {
-    $!raw
-    data remove storage bwe:ctx req
-    data modify storage bwe:ctx req set value {}
-    data modify storage bwe:ctx req.block set value "$(block)"
-    # Copy mask compound if provided - use macro to handle optional parameter
-    $data modify storage bwe:ctx req.mask set value $(mask)
-    raw!$
 
+// Internal implementation for hollow fills
+function bwe:_do_fill_hollow {
     exec bwe:_parse_mask;
     _op_mode<@s> = 2;
     exec bwe:fill_block_unified;
 }
 
-// OUTLINE edges (12). Supports mask.
+// HOLLOW shell (6 faces) - no mask required
+function bwe:fill_hollow {
+    $!raw
+    data remove storage bwe:ctx req
+    data modify storage bwe:ctx req set value {}
+    data modify storage bwe:ctx req.block set value "$(block)"
+    # No mask - will default to mode 0 (all)
+    raw!$
+
+    exec bwe:_do_fill_hollow;
+}
+
+// HOLLOW shell with mask
+function bwe:fill_hollow_mask {
+    $!raw
+    data remove storage bwe:ctx req
+    data modify storage bwe:ctx req set value {}
+    data modify storage bwe:ctx req.block set value "$(block)"
+    data modify storage bwe:ctx req.mask set value $(mask)
+    raw!$
+
+    exec bwe:_do_fill_hollow;
+}
+
+
+// Internal implementation for outline fills
+function bwe:_do_fill_outline {
+    exec bwe:_parse_mask;
+    _op_mode<@s> = 3;
+    exec bwe:fill_block_unified;
+}
+
+// OUTLINE edges (12) - no mask required
 function bwe:fill_outline {
     $!raw
     data remove storage bwe:ctx req
     data modify storage bwe:ctx req set value {}
     data modify storage bwe:ctx req.block set value "$(block)"
-    # Copy mask compound if provided - use macro to handle optional parameter
-    $data modify storage bwe:ctx req.mask set value $(mask)
+    # No mask - will default to mode 0 (all)
     raw!$
 
-    exec bwe:_parse_mask;
-    _op_mode<@s> = 3;
-    exec bwe:fill_block_unified;
+    exec bwe:_do_fill_outline;
+}
+
+// OUTLINE edges with mask
+function bwe:fill_outline_mask {
+    $!raw
+    data remove storage bwe:ctx req
+    data modify storage bwe:ctx req set value {}
+    data modify storage bwe:ctx req.block set value "$(block)"
+    data modify storage bwe:ctx req.mask set value $(mask)
+    raw!$
+
+    exec bwe:_do_fill_outline;
 }
 
 
@@ -1454,3 +1527,5 @@ function bwe:update_selector {
     scoreboard players reset @s[scores={bwe_use_selector=1..}] bwe_use_selector
     raw!$
 }
+
+

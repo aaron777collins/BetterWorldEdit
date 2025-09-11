@@ -4,9 +4,6 @@
 data remove storage bwe:ctx req
 data modify storage bwe:ctx req set value {}
 $data modify storage bwe:ctx req.block set value "$(block)"
-# Copy mask compound if provided - use macro to handle optional parameter
-$data modify storage bwe:ctx req.mask set value $(mask)
+# No mask - will default to mode 0 (all)
 
-function bwe:_parse_mask
-scoreboard players set @s _op_mode 1
-function bwe:fill_block
+function bwe:_do_fill_solid

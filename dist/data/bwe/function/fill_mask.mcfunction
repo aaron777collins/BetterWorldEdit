@@ -1,9 +1,9 @@
-# Function: bwe:fill_selection
+# Function: bwe:fill_mask
 
 
 data remove storage bwe:ctx req
 data modify storage bwe:ctx req set value {}
 $data modify storage bwe:ctx req.block set value "$(block)"
-# No mask - will default to mode 0 (all)
+$data modify storage bwe:ctx req.mask set value $(mask)
 
 function bwe:_do_fill_solid
