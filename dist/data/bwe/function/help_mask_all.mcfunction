@@ -1,0 +1,20 @@
+# Function: bwe:help_mask_all
+
+
+tellraw @s [{"text":"Mask: All (Default)","bold":true,"color":"aqua"}]
+tellraw @s [{"text":"Replaces ALL blocks in the selection with the new block.","color":"gray"}]
+tellraw @s [{"text":"This is the default behavior when no mask is specified.","color":"gray"}]
+tellraw @s [{"text":"","color":"gray"}]
+tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
+tellraw @s [{"text":"Explicit: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\",mask:{mode:\"all\"}}","color":"white"}]
+tellraw @s [{"text":"Implicit: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\"}","color":"white"}]
+tellraw @s [{"text":"","color":"gray"}]
+tellraw @s [{"text":"Behavior:","bold":true,"color":"green"}]
+tellraw @s [{"text":"- Replaces stone, dirt, air, water, etc.","color":"yellow"}]
+tellraw @s [{"text":"- No items are dropped","color":"yellow"}]
+tellraw @s [{"text":"- Fastest mode","color":"yellow"}]
+tellraw @s [{"text":"","color":"gray"}]
+tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
+tellraw @s [{"text":"Fill with stone: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\"}","color":"white"}]
+tellraw @s [{"text":"Clear to air: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\"}","color":"white"}]
+tellraw @s [{"text":"Fill with water: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:water\"}","color":"white"}]

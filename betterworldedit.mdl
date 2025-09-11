@@ -86,16 +86,192 @@ function bwe:help {
     tellraw @s [{"text":"/function bwe:pos1","color":"gold"},{"text":" - set position 1 (your current block)","color":"yellow"}]
     tellraw @s [{"text":"/function bwe:pos2","color":"gold"},{"text":" - set position 2 (your current block)","color":"yellow"}]
     tellraw @s [{"text":"/function bwe:info","color":"gold"},{"text":" - show selection info","color":"yellow"}]
-    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\",mask:{mode:\"keep\"}}","color":"aqua"},{"text":" - fill solid (supports mask)","color":"yellow"}]
-    tellraw @s [{"text":"/function bwe:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"aqua"},{"text":" - shell only (no seams)","color":"yellow"}]
-    tellraw @s [{"text":"/function bwe:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\"}}","color":"aqua"},{"text":" - edges & corners only","color":"yellow"}]
-    tellraw @s [{"text":"Mask modes: ","color":"gray"},{"text":"all","color":"white"},{"text":", ","color":"gray"},{"text":"keep","color":"white"},{"text":", ","color":"gray"},{"text":"destroy","color":"white"},{"text":", ","color":"gray"},{"text":"replace(filter)","color":"white"}]
-    tellraw @s [{"text":"Example replace-tag: ","color":"gray"},{"text":"mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}","color":"aqua"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Fill Commands:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:oak_planks\"}","color":"aqua"},{"text":" - fill solid","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:stone\"}","color":"aqua"},{"text":" - shell only (faces)","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:glowstone\"}","color":"aqua"},{"text":" - edges & corners only","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Detailed Help:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"/function bwe:help_fill","color":"gold"},{"text":" - solid fill examples","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:help_hollow","color":"gold"},{"text":" - hollow fill examples","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:help_outline","color":"gold"},{"text":" - outline fill examples","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:help_mask_all","color":"gold"},{"text":" - replace all blocks (default)","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:help_mask_keep","color":"gold"},{"text":" - only fill air blocks","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:help_mask_destroy","color":"gold"},{"text":" - drop items when replacing","color":"yellow"}]
+    tellraw @s [{"text":"/function bwe:help_mask_replace","color":"gold"},{"text":" - filter specific blocks","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Tools & Config:","bold":true,"color":"green"}]
     tellraw @s [{"text":"/function bwe:give_selector","color":"gold"},{"text":" - get selector tools (pos1 & pos2)","color":"yellow"}]
     tellraw @s [{"text":"/function bwe:set_max_fill ","color":"gold"},{"text":"{value:30000}","color":"aqua"},{"text":" - set max blocks per sub-fill","color":"yellow"}]
     tellraw @s [{"text":"/function bwe:set_topdown_mode ","color":"gold"},{"text":"{mode:0}","color":"aqua"},{"text":" - set top-down fill mode","color":"yellow"}]
     tellraw @s [{"text":"Top-down modes: ","color":"gray"},{"text":"0=air only","color":"white"},{"text":", ","color":"gray"},{"text":"1=liquids+air","color":"white"},{"text":", ","color":"gray"},{"text":"2=all blocks","color":"white"}]
-    tellraw @s [{"text":"Global config: ","color":"gray"},{"text":"armor stand tag ","color":"dark_gray"},{"text":"bwe_global_config","color":"aqua"},{"text":" controls settings.","color":"gray"}]
+    raw!$
+}
+
+// =============================
+// Detailed Help Functions
+// =============================
+
+function bwe:help_fill {
+    $!raw
+    tellraw @s [{"text":"Solid Fill Help","bold":true,"color":"aqua"}]
+    tellraw @s [{"text":"Fills the entire selection volume with blocks.","color":"gray"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Basic Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:stone\"}","color":"aqua"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"With Mask Examples:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Replace all: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:dirt\"}","color":"white"}]
+    tellraw @s [{"text":"Only air: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Drop items: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"Replace stone: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"Replace leaves: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\",mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}}","color":"white"}]
+    raw!$
+}
+
+function bwe:help_hollow {
+    $!raw
+    tellraw @s [{"text":"Hollow Fill Help","bold":true,"color":"aqua"}]
+    tellraw @s [{"text":"Fills only the outer faces (shell) of the selection.","color":"gray"}]
+    tellraw @s [{"text":"Creates a hollow box - interior remains unchanged.","color":"gray"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Basic Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"/function bwe:fill_hollow ","color":"gold"},{"text":"{block:\"minecraft:glass\"}","color":"aqua"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Perfect for:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"- Building walls/rooms","color":"yellow"}]
+    tellraw @s [{"text":"- Creating containers","color":"yellow"}]
+    tellraw @s [{"text":"- Glass domes/boxes","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"With Mask Examples:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Glass shell: ","color":"gray"},{"text":"/function bwe:fill_hollow {block:\"minecraft:glass\"}","color":"white"}]
+    tellraw @s [{"text":"Only replace stone faces: ","color":"gray"},{"text":"/function bwe:fill_hollow {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"Keep existing blocks: ","color":"gray"},{"text":"/function bwe:fill_hollow {block:\"minecraft:oak_planks\",mask:{mode:\"keep\"}}","color":"white"}]
+    raw!$
+}
+
+function bwe:help_outline {
+    $!raw
+    tellraw @s [{"text":"Outline Fill Help","bold":true,"color":"aqua"}]
+    tellraw @s [{"text":"Fills only the edges and corners of the selection.","color":"gray"}]
+    tellraw @s [{"text":"Creates a wireframe - faces and interior remain unchanged.","color":"gray"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Basic Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"/function bwe:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:glowstone\"}","color":"aqua"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Perfect for:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"- Marking boundaries","color":"yellow"}]
+    tellraw @s [{"text":"- Creating wireframes","color":"yellow"}]
+    tellraw @s [{"text":"- Lighting systems","color":"yellow"}]
+    tellraw @s [{"text":"- Debug visualization","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"With Mask Examples:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Glowstone frame: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:glowstone\"}","color":"white"}]
+    tellraw @s [{"text":"Replace stone edges: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:gold_block\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"Only fill air edges: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:redstone_block\",mask:{mode:\"keep\"}}","color":"white"}]
+    raw!$
+}
+
+function bwe:help_mask_all {
+    $!raw
+    tellraw @s [{"text":"Mask: All (Default)","bold":true,"color":"aqua"}]
+    tellraw @s [{"text":"Replaces ALL blocks in the selection with the new block.","color":"gray"}]
+    tellraw @s [{"text":"This is the default behavior when no mask is specified.","color":"gray"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Explicit: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\",mask:{mode:\"all\"}}","color":"white"}]
+    tellraw @s [{"text":"Implicit: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\"}","color":"white"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Behavior:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"- Replaces stone, dirt, air, water, etc.","color":"yellow"}]
+    tellraw @s [{"text":"- No items are dropped","color":"yellow"}]
+    tellraw @s [{"text":"- Fastest mode","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Fill with stone: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\"}","color":"white"}]
+    tellraw @s [{"text":"Clear to air: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\"}","color":"white"}]
+    tellraw @s [{"text":"Fill with water: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:water\"}","color":"white"}]
+    raw!$
+}
+
+function bwe:help_mask_keep {
+    $!raw
+    tellraw @s [{"text":"Mask: Keep","bold":true,"color":"aqua"}]
+    tellraw @s [{"text":"Only fills AIR blocks - existing blocks are left untouched.","color":"gray"}]
+    tellraw @s [{"text":"Perfect for adding blocks without destroying existing builds.","color":"gray"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"aqua"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Behavior:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"- Only replaces air blocks","color":"yellow"}]
+    tellraw @s [{"text":"- Stone, dirt, wood, etc. stay unchanged","color":"yellow"}]
+    tellraw @s [{"text":"- No items are dropped","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Perfect for:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"- Filling caves with light sources","color":"yellow"}]
+    tellraw @s [{"text":"- Adding support pillars","color":"yellow"}]
+    tellraw @s [{"text":"- Creating platforms in air","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Light up caves: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:glowstone\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Fill air with glass: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:glass\",mask:{mode:\"keep\"}}","color":"white"}]
+    tellraw @s [{"text":"Stone platform: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:stone\",mask:{mode:\"keep\"}}","color":"white"}]
+    raw!$
+}
+
+function bwe:help_mask_destroy {
+    $!raw
+    tellraw @s [{"text":"Mask: Destroy","bold":true,"color":"aqua"}]
+    tellraw @s [{"text":"Replaces ALL blocks AND drops them as items.","color":"gray"}]
+    tellraw @s [{"text":"Like breaking every block individually, but much faster!","color":"gray"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"aqua"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Behavior:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"- Replaces all blocks","color":"yellow"}]
+    tellraw @s [{"text":"- Drops items on the ground","color":"yellow"}]
+    tellraw @s [{"text":"- Items can be collected","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Perfect for:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"- Harvesting large areas","color":"yellow"}]
+    tellraw @s [{"text":"- Collecting building materials","color":"yellow"}]
+    tellraw @s [{"text":"- Clearing terrain but keeping resources","color":"yellow"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Harvest stone: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"Collect and replace: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:dirt\",mask:{mode:\"destroy\"}}","color":"white"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"WARNING: Can create lots of item entities!","color":"red"}]
+    raw!$
+}
+
+function bwe:help_mask_replace {
+    $!raw
+    tellraw @s [{"text":"Mask: Replace","bold":true,"color":"aqua"}]
+    tellraw @s [{"text":"Only replaces blocks that match a specific filter.","color":"gray"}]
+    tellraw @s [{"text":"Most precise control - target exactly what you want to change.","color":"gray"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Usage:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"/function bwe:fill ","color":"gold"},{"text":"{block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"aqua"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Filter Types:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Single block: ","color":"gray"},{"text":"\"minecraft:stone\"","color":"white"}]
+    tellraw @s [{"text":"Block tag: ","color":"gray"},{"text":"\"#minecraft:leaves\"","color":"white"}]
+    tellraw @s [{"text":"Block state: ","color":"gray"},{"text":"\"minecraft:oak_log[axis=x]\"","color":"white"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Common Block Tags:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"#minecraft:leaves","color":"aqua"},{"text":" - all leaf types","color":"gray"}]
+    tellraw @s [{"text":"#minecraft:logs","color":"aqua"},{"text":" - all log types","color":"gray"}]
+    tellraw @s [{"text":"#minecraft:planks","color":"aqua"},{"text":" - all plank types","color":"gray"}]
+    tellraw @s [{"text":"#minecraft:stone_bricks","color":"aqua"},{"text":" - all stone brick variants","color":"gray"}]
+    tellraw @s [{"text":"","color":"gray"}]
+    tellraw @s [{"text":"Examples:","bold":true,"color":"green"}]
+    tellraw @s [{"text":"Stone to cobble: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:cobblestone\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+    tellraw @s [{"text":"Clear all leaves: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:air\",mask:{mode:\"replace\",filter:\"#minecraft:leaves\"}}","color":"white"}]
+    tellraw @s [{"text":"Upgrade planks: ","color":"gray"},{"text":"/function bwe:fill {block:\"minecraft:dark_oak_planks\",mask:{mode:\"replace\",filter:\"#minecraft:planks\"}}","color":"white"}]
     raw!$
 }
 

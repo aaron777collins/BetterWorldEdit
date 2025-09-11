@@ -1,0 +1,20 @@
+# Function: bwe:help_outline
+
+
+tellraw @s [{"text":"Outline Fill Help","bold":true,"color":"aqua"}]
+tellraw @s [{"text":"Fills only the edges and corners of the selection.","color":"gray"}]
+tellraw @s [{"text":"Creates a wireframe - faces and interior remain unchanged.","color":"gray"}]
+tellraw @s [{"text":"","color":"gray"}]
+tellraw @s [{"text":"Basic Usage:","bold":true,"color":"green"}]
+tellraw @s [{"text":"/function bwe:fill_outline ","color":"gold"},{"text":"{block:\"minecraft:glowstone\"}","color":"aqua"}]
+tellraw @s [{"text":"","color":"gray"}]
+tellraw @s [{"text":"Perfect for:","bold":true,"color":"green"}]
+tellraw @s [{"text":"- Marking boundaries","color":"yellow"}]
+tellraw @s [{"text":"- Creating wireframes","color":"yellow"}]
+tellraw @s [{"text":"- Lighting systems","color":"yellow"}]
+tellraw @s [{"text":"- Debug visualization","color":"yellow"}]
+tellraw @s [{"text":"","color":"gray"}]
+tellraw @s [{"text":"With Mask Examples:","bold":true,"color":"green"}]
+tellraw @s [{"text":"Glowstone frame: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:glowstone\"}","color":"white"}]
+tellraw @s [{"text":"Replace stone edges: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:gold_block\",mask:{mode:\"replace\",filter:\"minecraft:stone\"}}","color":"white"}]
+tellraw @s [{"text":"Only fill air edges: ","color":"gray"},{"text":"/function bwe:fill_outline {block:\"minecraft:redstone_block\",mask:{mode:\"keep\"}}","color":"white"}]
